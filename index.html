@@ -1,0 +1,1058 @@
+<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>NYC Pile Calc - 2022 Edition</title>
+<meta name="description" content="Axial capacity checks for driven steel H-piles and pipe piles per the 2022 NYC Building Code, with FHWA static analysis, driving criteria and a PDF calc package.">
+<meta name="theme-color" content="#2f5aa8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232f5aa8'/%3E%3Crect x='13' y='5' width='6' height='22' fill='%23fff'/%3E%3Cpath d='M10 27h12' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: calc-sheet. Sticky tab strip, stacked input groups in a 2-col grid that collapses to 1, result tiles above the working */
+:root{
+  --bg:#f6f7f4; --sheet:#ffffff; --ink:#1d2433; --muted:#5f6878; --line:#d9ddd5;
+  --accent:#2f5aa8; --accent-soft:#e3eaf7; --rock:#cfc9bd; --soil:#e6dcc6; --conc:#d9dce0;
+  --ok:#2d7a4a; --ok-bg:#e1f2e6; --bad:#b23a2b; --bad-bg:#f9e2de; --warn:#8a6512; --warn-bg:#f8efd6;
+  --g-soil:#f3ecdc; --g-soil-dot:#ddd0b0; --g-rock:#e4e1d9; --g-rock-line:#c9c3b6; --g-water:#4a74b5;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+/* Light-only by design: the interface stays light even when the device is in dark mode */
+*{box-sizing:border-box}
+body{background:var(--g-rock);color:var(--ink);font-family:var(--display);font-size:14px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--sheet)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px;margin-bottom:14px}
+h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.code{font-family:var(--mono);font-size:12px;color:var(--muted)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:4px;background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:4px;margin-bottom:16px;overflow-x:auto}
+nav button{flex:1 1 0;min-width:max-content;font:600 13px var(--display);color:var(--muted);background:transparent;border:0;border-radius:6px;padding:9px 12px;cursor:pointer;display:flex;gap:8px;align-items:center;justify-content:center}
+nav button[aria-selected="true"]{background:var(--accent);color:var(--sheet)}
+nav button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+nav button[aria-selected="true"] .dot{box-shadow:0 0 0 2px var(--sheet)}
+.wrap{width:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:16px;align-items:start}
+fieldset{margin:0;border:1px solid var(--line);border-radius:8px;background:var(--sheet);padding:14px 14px 14px;min-width:0}
+/* Card titles sit inside the card instead of on its border */
+legend{float:left;width:100%;font:700 16px/1.25 var(--display);letter-spacing:-.005em;color:var(--accent);padding:0 0 8px;margin:0 0 6px;border-bottom:2px solid var(--accent-soft);text-wrap:balance}
+legend+*{clear:both}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(76px,112px) 40px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--line)}
+.row:last-child{border-bottom:0}
+.row label{color:var(--ink);font-size:13px;min-width:0}
+.row small{display:block;color:var(--muted);font-size:11px}
+.unit{font-family:var(--mono);font-size:11px;color:var(--muted)}
+input,select{width:100%;font:400 13px var(--mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 7px;text-align:right;font-variant-numeric:tabular-nums}
+select{text-align:left}
+input[type=checkbox]{width:18px;height:18px;justify-self:end;accent-color:var(--accent)}
+.row.wide{grid-template-columns:minmax(0,1fr) minmax(0,170px)}
+.row.wide .code{min-width:0;overflow-wrap:anywhere}
+#studFit{grid-column:1/-1;text-align:left!important}
+select{min-width:0;max-width:100%;text-overflow:ellipsis}
+.row.wide input{text-align:left}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:10px;margin-bottom:16px}
+.tile{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tile .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.tile .v{font:600 20px var(--mono);font-variant-numeric:tabular-nums;margin-top:2px}
+.tile .v span{font-size:12px;color:var(--muted);font-weight:400}
+.pill{display:inline-block;font:600 12px var(--mono);padding:3px 9px;border-radius:99px}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.tile.verdict{border-width:2px}
+.tile.verdict.ok{border-color:var(--ok)} .tile.verdict.bad{border-color:var(--bad)}
+.calc{background:var(--sheet);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+.calc table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+.calc th,.calc td{padding:7px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.calc th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.calc td.n{font-family:var(--mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.calc td.f{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.calc tr.sum td{font-weight:600;background:var(--accent-soft)}
+h2{font-size:15px;margin:20px 0 8px;font-weight:600}
+.note{font-size:12px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:8px 10px;margin-top:12px}
+.sketch{display:flex;justify-content:center;padding:8px 0}
+.sketch svg{max-width:100%;height:auto}
+.sign{margin-left:8px;font:600 13px var(--mono);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:5px;padding:1px 8px;cursor:pointer;vertical-align:middle}
+#plan{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.xs{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;max-width:100%}
+.xs figcaption{display:flex;flex-direction:column;align-items:center;font-size:12px}
+.xs figcaption span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.sum{display:flex;flex-direction:column;gap:6px;background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:16px}
+.sum:empty{display:none}
+.bar-r{display:grid;grid-template-columns:120px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:12px}
+.bar-r b{font-family:var(--mono);text-align:right;font-weight:600}
+.bar-t{height:10px;background:var(--bg);border-radius:5px;overflow:hidden}
+.bar-f{height:100%;background:var(--muted);border-radius:5px}
+.bar-f.gov{background:var(--accent)}
+fieldset{background:color-mix(in srgb,var(--sheet) 72%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+input,select{background:color-mix(in srgb,var(--bg) 50%,transparent)}
+input:disabled{background:color-mix(in srgb,var(--bg) 30%,transparent)}
+#ground{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:block}
+header{background:color-mix(in srgb,var(--sheet) 82%,transparent);border-radius:8px;padding:10px 12px}
+h2{display:inline-block;background:var(--sheet);border-radius:6px;padding:3px 8px}
+.ckhead{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin:12px 0 4px}
+.cklist{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.cklist:empty{display:none}
+.ck{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:6px;border:1px solid var(--line);border-left:3px solid var(--ok);background:color-mix(in srgb,var(--sheet) 70%,transparent)}
+.ck.bad{border-left-color:var(--warn)}
+.ck.fail{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad-bg) 70%,transparent)}
+.ck.info{border-left-color:var(--line)}
+.cknote{font-size:12px;line-height:1.4;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:8px 10px}
+.ck-l{font-size:13px;line-height:1.3}
+.ck-v{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+.ck-v b{font-weight:600;font-size:13px}
+.ck-op{color:var(--muted)}
+.pill{white-space:nowrap}
+.cks{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}
+.cks th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;font-weight:600;padding:3px 4px;border-bottom:1px solid var(--line)}
+.cks td{padding:5px 4px;border-bottom:1px dashed var(--line);vertical-align:top}
+.cks td.n{font-family:var(--mono);white-space:nowrap;text-align:right}
+.cks tr:last-child td{border-bottom:0}
+.btn.primary{background:var(--accent);color:var(--sheet);border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.exp{background:color-mix(in srgb,var(--sheet) 92%,transparent);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
+.exp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:16px}
+.exp-col{min-width:0}
+.exp-go{align-items:center}
+.logo-box{display:flex;align-items:center;justify-content:center;height:64px;border:1px dashed var(--line);border-radius:6px;background:#fff;margin-bottom:8px;color:#5d6676;font-size:12px}
+.logo-box img{max-height:52px;max-width:90%}
+.sr{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.note.scope{margin:0 0 16px;color:var(--ink);border-left:3px solid var(--warn)}
+h1 .ed{font-size:.62em;font-weight:600;color:var(--accent);margin-left:6px;letter-spacing:.02em;white-space:nowrap}
+.ds-now{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:6px 12px}
+.ds-now b{font-size:15px}
+.ds-list{display:flex;flex-direction:column;gap:6px}
+.ds-item{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:color-mix(in srgb,var(--sheet) 70%,transparent)}
+.ds-item.cur{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.ds-item .meta{min-width:0}
+.ds-item .meta b{display:block;font-size:13px;overflow-wrap:anywhere}
+.ds-item .meta span{font:11px var(--mono);color:var(--muted)}
+.ds-item .actions{gap:6px}
+.btn.sm{padding:5px 9px;font-size:12px}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.ds-empty{font-size:12px;color:var(--muted);padding:6px 2px}
+.hint{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.sketch text{font:11px var(--mono);fill:var(--muted);paint-order:stroke;stroke:var(--sheet);stroke-width:3px;stroke-linejoin:round}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 12px var(--display);border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:6px;padding:7px 12px;cursor:pointer}
+.calc tr.sum{display:table-row;background:none;border:0;border-radius:0;padding:0;margin:0}
+.lyr{border-top:1px solid var(--line);margin-top:8px;padding-top:2px}.lyr:first-child{border-top:0;margin-top:0}.lyr .ckhead{margin:8px 0 2px;color:var(--accent)}
+@media (max-width:480px){
+  legend{font-size:15px}
+  .row{grid-template-columns:minmax(0,1fr) 92px 36px;gap:6px}
+  .row.wide{grid-template-columns:1fr}
+  input,select{font-size:16px}
+  fieldset{padding:10px 10px 12px}
+  nav button{padding:9px 8px;font-size:12px}
+  h1{font-size:19px}
+  .tile .v{font-size:18px}
+}
+</style>
+
+<svg id="ground" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="pSoil" width="22" height="22" patternUnits="userSpaceOnUse">
+      <rect width="22" height="22" fill="var(--g-soil)"/>
+      <circle cx="4" cy="5" r="1.3" fill="var(--g-soil-dot)"/><circle cx="15" cy="9" r="0.9" fill="var(--g-soil-dot)"/>
+      <circle cx="9" cy="17" r="1.6" fill="var(--g-soil-dot)"/><circle cx="19" cy="19" r="0.8" fill="var(--g-soil-dot)"/>
+      <circle cx="12" cy="2" r="0.7" fill="var(--g-soil-dot)"/>
+    </pattern>
+    <pattern id="pRock" width="180" height="90" patternUnits="userSpaceOnUse">
+      <rect width="180" height="90" fill="var(--g-rock)"/>
+      <path d="M0 22 C40 18 70 27 110 21 S160 24 180 22 M0 64 C30 60 80 68 120 62 S165 66 180 64" stroke="var(--g-rock-line)" stroke-width="1.1" fill="none"/>
+      <path d="M34 22 L42 63 M96 23 L88 63 M150 22 L158 64 M18 64 L12 90 M70 66 L78 90 M130 63 L124 90 M60 0 L54 20 M120 0 L128 22" stroke="var(--g-rock-line)" stroke-width="0.9" fill="none"/>
+      <path d="M52 34 l12 9 M110 40 l9 -7 M20 76 l8 6 M146 74 l-7 8 M84 8 l6 6" stroke="var(--g-rock-line)" stroke-width="0.7" fill="none" opacity="0.8"/>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#pRock)"/>
+  <path id="gSoil" fill="url(#pSoil)"/>
+  <path id="gTor" fill="none" stroke="var(--g-rock-line)" stroke-width="2" stroke-dasharray="10 6"/>
+  <g id="gWater"></g>
+</svg>
+<div class="wrap">
+<header>
+  <div><h1>NYC Pile Calc <span class="ed">2022 Edition</span></h1><div class="code">Driven steel H &amp; pipe piles · NYC Building Code Ch. 18 · ASD · kip-in-ft</div></div>
+  <div class="actions"><button class="btn" id="dsOpen" type="button" aria-expanded="false" aria-controls="dsPanel">Saved designs</button><button class="btn primary" id="expOpen" type="button" aria-expanded="false" aria-controls="expPanel">Export calc package</button><button class="btn" id="reset" type="button">Reset to example</button></div>
+</header>
+<section id="dsPanel" class="exp" hidden aria-label="Saved designs and templates">
+  <div class="ds-now"><div><div class="ckhead" style="margin:0">Current design</div><b id="dsName">Unsaved design</b> <span class="pill warn" id="dsDirty" hidden>unsaved changes</span></div>
+    <span class="hint" id="dsWhere" style="margin:0"></span></div>
+  <div class="row wide"><label for="dsNewName">Name<small>for a new design or template</small></label><input id="dsNewName" type="text" value="" placeholder="e.g. P-1 Tower A"></div>
+  <div class="actions"><button class="btn primary" id="dsSave" type="button">Save changes</button><button class="btn" id="dsSaveNew" type="button">Save as new design</button><button class="btn" id="dsSaveTpl" type="button">Save as template</button><button class="btn" id="dsNew" type="button">Start new from example</button><button class="btn" id="dsExport" type="button">Back up designs</button><label class="btn" for="dsImport">Restore backup</label><input id="dsImport" type="file" accept="application/json,.json" class="sr"></div>
+  <span class="hint" id="dsMsg" role="status" style="margin:0"></span>
+  <div class="exp-grid">
+    <div class="exp-col"><div class="ckhead">Designs</div><div class="ds-list" id="dsListD"></div></div>
+    <div class="exp-col"><div class="ckhead">Templates<small class="hint" style="margin-left:6px;text-transform:none;letter-spacing:0">start a new design from these; project details are left blank</small></div><div class="ds-list" id="dsListT"></div></div>
+  </div>
+</section>
+<section id="expPanel" class="exp" hidden aria-label="Export calculation package">
+  <div class="exp-grid">
+    <div class="exp-col">
+      <div class="row wide"><label for="jobNo">Job number</label><input id="jobNo" type="text" value=""></div>
+      <div class="row wide"><label for="prepBy">Prepared by</label><input id="prepBy" type="text" value=""></div>
+      <div class="row wide"><label for="chkBy">Checked by</label><input id="chkBy" type="text" value=""></div>
+    </div>
+    <div class="exp-col">
+      <div class="ckhead">Logo, bottom left of every page</div>
+      <div class="logo-box"><img id="logoPrev" alt="Logo preview" hidden><span id="logoNone">No logo added</span></div>
+      <div class="actions"><label class="btn" for="logoFile">Choose logo image</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/svg+xml" class="sr"><button class="btn" id="logoClear" type="button" hidden>Remove logo</button></div>
+      <p class="hint">PNG, JPG or SVG. Kept in this browser for future exports.</p>
+    </div>
+  </div>
+  <div class="actions exp-go"><button class="btn primary" id="expPdf" type="button">Download PDF</button><span class="hint" id="expMsg" role="status"></span></div>
+</section>
+
+<nav role="tablist">
+  <button role="tab" data-tab="inputs" aria-selected="true">Materials &amp; inputs</button>
+  <button role="tab" data-tab="geotech" aria-selected="false"><i class="dot" id="dot-geo"></i>Geotechnical</button>
+  <button role="tab" data-tab="structural" aria-selected="false"><i class="dot" id="dot-str"></i>Structural</button>
+  <button role="tab" data-tab="driving" aria-selected="false"><i class="dot" id="dot-drv"></i>Driving &amp; testing</button>
+</nav>
+
+<p class="note scope" role="note"><b>Scope:</b> This tool checks the axial capacity of a single driven steel H-pile or pipe pile only. Lateral capacity, bending, buckling and group effects are not checked and must be evaluated separately.</p>
+
+<!-- INPUTS -->
+<section id="tab-inputs" role="tabpanel">
+<div class="grid">
+  <fieldset><legend>Project</legend>
+    <div class="row wide"><label for="proj">Project</label><input id="proj" type="text" value="Example — verify all values"></div>
+    <div class="row wide"><label for="mark">Pile mark</label><input id="mark" type="text" value="P-1"></div>
+    <div class="row wide"><label for="sdc">Seismic Design Category</label>
+      <select id="sdc"><option value="AB" selected>A or B</option><option value="C">C</option><option value="D">D</option></select></div>
+  </fieldset>
+
+  <fieldset><legend>Service loads (ASD)</legend>
+    <div class="row"><label for="PS">Service load<small>dead + live</small></label><input id="PS" type="number" value="220"><span class="unit">kip</span></div>
+    <div class="row"><label for="PO">Transient loads<small>wind, seismic or other</small></label><input id="PO" type="number" value="0"><span class="unit">kip</span></div>
+    <div class="row"><label for="PDD">Downdrag<small>negative skin friction, 1810.3.1.2</small></label><input id="PDD" type="number" value="20"><span class="unit">kip</span></div>
+    <div class="row"><label for="PU">Net uplift</label><input id="PU" type="number" value="0"><span class="unit">kip</span></div>
+    <div class="row wide"><label>Compression demand<small>service + transient + downdrag</small></label><span class="code" id="Ptxt" style="text-align:right">—</span></div>
+  </fieldset>
+
+  <fieldset><legend>Pile type</legend>
+    <div class="row wide"><label for="pType">Pile type</label>
+      <select id="pType"><option value="hp" selected>Steel H-pile</option><option value="pipeO">Open-end pipe pile</option><option value="pipeC">Closed-end pipe pile</option></select></div>
+    <div class="row wide" id="plugRow"><label for="plug">Toe area<small>H-pile and open-end pipe, static analysis</small></label>
+      <select id="plug"><option value="steel" selected>Steel only (unplugged)</option><option value="plug">Plugged (box / full circle)</option></select></div>
+  </fieldset>
+
+  <fieldset id="hpBox"><legend>H-pile section</legend>
+    <div class="row wide"><label for="hpName">Section<small>AISC HP shapes</small></label><select id="hpName"></select></div>
+    <div class="row wide"><label>d × bf · tw / tf</label><span class="code" id="hpDimTxt" style="text-align:right">—</span></div>
+    <div id="hpCustom">
+      <div class="row"><label for="hpA">Area</label><input id="hpA" type="number" value="26.1" step="0.1"><span class="unit">in²</span></div>
+      <div class="row"><label for="hpD">Depth, d</label><input id="hpD" type="number" value="13.8" step="0.1"><span class="unit">in</span></div>
+      <div class="row"><label for="hpBf">Flange width, bf</label><input id="hpBf" type="number" value="14.7" step="0.1"><span class="unit">in</span></div>
+      <div class="row"><label for="hpTw">Web thickness, tw</label><input id="hpTw" type="number" value="0.615" step="0.005"><span class="unit">in</span></div>
+      <div class="row"><label for="hpTf">Flange thickness, tf</label><input id="hpTf" type="number" value="0.615" step="0.005"><span class="unit">in</span></div>
+    </div>
+    <div class="row"><label for="FyH">Fy<small>ASTM A572 Gr 50 typical</small></label><input id="FyH" type="number" value="50"><span class="unit">ksi</span></div>
+  </fieldset>
+
+  <fieldset id="pipeBox"><legend>Pipe section</legend>
+    <div class="row"><label for="OD">Outside diameter</label><input id="OD" type="number" value="12.75" step="0.125"><span class="unit">in</span></div>
+    <div class="row"><label for="tw">Wall thickness</label><input id="tw" type="number" value="0.375" step="0.0625"><span class="unit">in</span></div>
+    <div class="row"><label for="FyP">Fy<small>A252 Gr 3: 45 · API 5CT N80: 80</small></label><input id="FyP" type="number" value="45"><span class="unit">ksi</span></div>
+    <div class="row"><label for="fill">Concrete filled</label><input id="fill" type="checkbox" checked><span></span></div>
+    <div id="fillBox">
+      <div class="row"><label for="fc">Fill f′c</label><input id="fc" type="number" value="5" step="0.5"><span class="unit">ksi</span></div>
+      <div class="row"><label for="rN">Reinforcing bars<small>0 = none</small></label><input id="rN" type="number" value="0" min="0" step="1"><span class="unit">ea</span></div>
+      <div class="row wide" id="rBarRow"><label for="rBar">Bar size</label>
+        <select id="rBar"><option value="0.31">#5 · 0.31 in²</option><option value="0.44">#6 · 0.44 in²</option><option value="0.60">#7 · 0.60 in²</option><option value="0.79" selected>#8 · 0.79 in²</option><option value="1.00">#9 · 1.00 in²</option><option value="1.27">#10 · 1.27 in²</option><option value="1.56">#11 · 1.56 in²</option></select></div>
+      <div class="row" id="fyRRow"><label for="fyR">Bar fy</label><input id="fyR" type="number" value="60"><span class="unit">ksi</span></div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>Corrosion</legend>
+    <div class="row"><label for="corLab">Lab corrosivity tests<small>soil and groundwater samples</small></label><input id="corLab" type="checkbox" checked><span></span></div>
+    <div id="corLabBox">
+      <div class="row"><label for="corRho">Minimum resistivity<small>AASHTO T 288</small></label><input id="corRho" type="number" value="3500" step="100"><span class="unit">Ω·cm</span></div>
+      <div class="row"><label for="corPH">pH<small>AASHTO T 289</small></label><input id="corPH" type="number" value="6.8" step="0.1"><span class="unit">pH</span></div>
+      <div class="row"><label for="corSO4">Sulfate<small>AASHTO T 290</small></label><input id="corSO4" type="number" value="150" step="10"><span class="unit">ppm</span></div>
+      <div class="row"><label for="corCl">Chloride<small>AASHTO T 291</small></label><input id="corCl" type="number" value="80" step="10"><span class="unit">ppm</span></div>
+    </div>
+    <div class="row"><label for="corFill">Landfill, cinder fill or mine waste</label><input id="corFill" type="checkbox"><span></span></div>
+    <div class="row"><label for="corSalt">Salt water or seawater exposure</label><input id="corSalt" type="checkbox"><span></span></div>
+    <div class="row"><label for="corWL">Changing water levels along pile</label><input id="corWL" type="checkbox"><span></span></div>
+    <div class="row"><label for="corEl">Stray electrical current</label><input id="corEl" type="checkbox"><span></span></div>
+    <div class="ckhead">Corrosivity checks</div><div class="cklist" id="corCk"></div>
+    <div class="row wide"><label for="corProt">Protection method<small>1810.2.12</small></label>
+      <select id="corProt"><option value="none" selected>None</option><option value="sacr">Sacrificial steel thickness</option><option value="coat">Protective coating</option><option value="encase">Concrete encasement</option><option value="other">Other method approved by engineer</option></select></div>
+    <div class="row" id="tcorrRow"><label for="tcorr">Sacrificial loss<small>each exposed steel face</small></label><input id="tcorr" type="number" value="0.0625" step="0.0625"><span class="unit">in</span></div>
+    <div class="row" id="corLifeRow"><label for="corLife">Design life</label><input id="corLife" type="number" value="75" step="5"><span class="unit">yr</span></div>
+    <p class="hint" id="corHint"></p>
+    <p class="hint">NYC BC numeric criteria are from 1814.2.1, written for helical piles and applied here as the code's only numeric corrosivity limits. FHWA GEC-12 6.12 criteria shown alongside.</p>
+  </fieldset>
+
+  <fieldset style="grid-column:1/-1"><legend>Cross section</legend>
+    <div class="sketch" id="plan"></div>
+  </fieldset>
+
+  <fieldset><legend>Geometry</legend>
+    <div class="row"><label for="Egs">Ground surface elevation</label><input id="Egs" type="number" value="10"><span class="unit">ft</span></div>
+    <div class="row"><label for="Ecut">Pile cutoff elevation<small>top of pile</small></label><input id="Ecut" type="number" value="6"><span class="unit">ft</span></div>
+    <div class="row"><label for="GWT">Groundwater elevation</label><input id="GWT" type="number" value="0"><span class="unit">ft</span></div>
+    <div class="row"><label for="Etor">Top of rock elevation</label><input id="Etor" type="number" value="-45"><span class="unit">ft</span></div>
+    <div class="row wide"><label for="bear">Pile tip bears on</label>
+      <select id="bear"><option value="rock" selected>Rock · Class 1a, 1b or 1c</option><option value="soft">Soft rock · Class 1d</option><option value="soil">Soil · not on rock</option></select></div>
+    <div class="row wide" id="rClsRow"><label for="rCls">Rock class at tip</label>
+      <select id="rCls"><option value="1a">1a · Hard sound</option><option value="1b" selected>1b · Medium hard</option><option value="1c">1c · Intermediate</option></select></div>
+    <div class="row" id="rPenRow"><label for="rPen">Penetration into rock</label><input id="rPen" type="number" value="0" step="0.5"><span class="unit">ft</span></div>
+    <div class="row" id="EtipRow"><label for="EtipS">Tip elevation</label><input id="EtipS" type="number" value="-35"><span class="unit">ft</span></div>
+    <div class="row wide"><label>Pile length<small>cutoff to tip</small></label><span class="code" id="Ltxt" style="text-align:right">—</span></div>
+  </fieldset>
+
+  <fieldset><legend>Soil layers</legend>
+    <div class="row wide"><label for="nL">Number of layers<small>top layer starts at ground surface</small></label>
+      <select id="nL"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div>
+    <div id="layers"></div>
+    <p class="hint">The last layer runs down to top of rock. Fill and organic layers get no positive skin friction.</p>
+  </fieldset>
+
+
+  <fieldset style="grid-column:1/-1"><legend>Profile</legend>
+    <div class="sketch" id="sketch"></div>
+  </fieldset>
+</div>
+<p class="note">Example values only. Allowable stresses, maximum pile loads and driving criteria are defaults to check against your copy of the 2022 NYC BC and the project geotechnical report.</p>
+</section>
+
+<!-- GEOTECH -->
+<section id="tab-geotech" role="tabpanel" hidden>
+<div class="tiles" id="geoTiles"></div>
+<div class="sum" id="capSum"></div>
+<div class="grid">
+  <fieldset><legend>Geotechnical capacity basis</legend>
+    <div class="row wide"><label for="geoSrc">Allowable geotechnical capacity from</label>
+      <select id="geoSrc"><option value="code" selected>Table 1810.4.1.3 maximum, confirmed by load test</option><option value="static">Static analysis (soil-bearing piles)</option><option value="test">Load test result</option></select></div>
+    <div class="row" id="QuserRow"><label for="Quser" id="QuserLbl">Allowable load from load test<small>lesser of the 1810.4.1.5 criteria</small></label><input id="Quser" type="number" value="300"><span class="unit">kip</span></div>
+    <div class="row"><label for="FSc">Factor of safety, compression<small>1810.3.1: not less than 2</small></label><input id="FSc" type="number" value="2" step="0.1"><span class="unit">FS</span></div>
+    <div class="row"><label for="FSt">Factor of safety, uplift<small>1810.3.4: not less than 3</small></label><input id="FSt" type="number" value="3" step="0.1"><span class="unit">FS</span></div>
+    <div class="row"><label for="LT">Load tests will be performed<small>needed above 40 tons, 1810.3.1</small></label><input id="LT" type="checkbox" checked><span></span></div>
+    <div class="row"><label for="exceed">Exceed Table 1810.4.1.3 maximum<small>substantiated per 1810.4.1.5.1</small></label><input id="exceed" type="checkbox"><span></span></div>
+  </fieldset>
+  <fieldset><legend>Static analysis methods</legend>
+    <div class="row wide"><label for="gMeth">Granular layers<small>FHWA GEC-12 7.2.1</small></label>
+      <select id="gMeth"><option value="nord" selected>Nordlund</option><option value="beta">Effective stress (β)</option><option value="meyer">Meyerhof SPT</option></select></div>
+    <div class="row wide"><label for="cMeth">Cohesive layers</label>
+      <select id="cMeth"><option value="alpha" selected>α method (Tomlinson)</option><option value="beta">Effective stress (β)</option></select></div>
+    <div class="row"><label for="ptLim">Limit p′t to 3 ksf<small>Nordlund toe, per FHWA</small></label><input id="ptLim" type="checkbox" checked><span></span></div>
+    <div class="row"><label for="tRat">Uplift shaft resistance ratio<small>× compression shaft resistance</small></label><input id="tRat" type="number" value="1.0" step="0.05"><span class="unit">×</span></div>
+    <p class="hint">Nordlund: Rs = Kδ·CF·σ′v·sin δ·Cd·D; Rt = αt·N′q·p′t·At ≤ qL·At. β: fs = β·σ′v, qt = Nt·p′t. Meyerhof: fs = N′60/50 tsf ≤ 1 (displacement) or N′60/100 ≤ 0.5 (H, open pipe); qt = 0.8·N′60·Db/b ≤ 8·N′60 tsf. α: fs = ca (Tomlinson, smooth steel), qt = 9·Su. H-pile shaft uses the box perimeter.</p>
+  </fieldset>
+</div>
+<h2>Static analysis by layer</h2>
+<div class="calc"><table id="geoLayers"></table></div>
+<h2>Granular methods compared</h2>
+<div class="calc"><table id="geoComp"></table></div>
+<h2>Working</h2>
+<div class="calc"><table id="geoCalc"></table></div>
+<p class="note">NYC BC 1810.3.1: allowable geotechnical capacity uses a factor of safety of at least 2 and must be shown by load tests, except driven piles of 40 tons or less. The static analysis follows FHWA GEC-12 (FHWA-NHI-16-009) using chart values digitized in the FHWA DRIVEN program; it is an estimate for planning and does not replace load tests. Table 1810.4.1.3 limits may be exceeded only where substantiated by load tests and analysis (1810.4.1.5.1).</p>
+</section>
+
+<!-- STRUCTURAL -->
+<section id="tab-structural" role="tabpanel" hidden>
+<div class="tiles" id="strTiles"></div>
+<div class="grid">
+  <fieldset><legend>Allowable stress factors</legend>
+    <div class="row"><label for="hiS">Higher steel stress justified<small>0.5 Fy ≤ 32 ksi, per 1810.4.1.5.1</small></label><input id="hiS" type="checkbox"><span></span></div>
+    <div class="row"><label for="ks">Steel, standard<small>× Fy</small></label><input id="ks" type="number" value="0.35" step="0.01"><span class="unit">×</span></div>
+    <div class="row"><label for="ksCap">Steel stress cap, standard<small>Table 1810.8: 0.35 Fy ≤ 16 ksi</small></label><input id="ksCap" type="number" value="16"><span class="unit">ksi</span></div>
+    <div class="row"><label for="ksH">Steel, justified<small>× Fy</small></label><input id="ksH" type="number" value="0.5" step="0.01"><span class="unit">×</span></div>
+    <div class="row"><label for="ksHCap">Steel stress cap, justified<small>Table 1810.8: 0.5 Fy ≤ 32 ksi</small></label><input id="ksHCap" type="number" value="32"><span class="unit">ksi</span></div>
+    <div class="row"><label for="kc">Concrete fill<small>× f′c, in pipe</small></label><input id="kc" type="number" value="0.33" step="0.01"><span class="unit">×</span></div>
+    <div class="row"><label for="kr">Reinforcement, compression<small>× fy</small></label><input id="kr" type="number" value="0.4" step="0.01"><span class="unit">×</span></div>
+    <div class="row"><label for="krCap">Reinforcement cap<small>Table 1810.8: 0.4 fy ≤ 30 ksi</small></label><input id="krCap" type="number" value="30"><span class="unit">ksi</span></div>
+  </fieldset>
+</div>
+<h2>Compression capacity</h2>
+<div class="calc"><table id="strComp"></table></div>
+<div id="tenSec"><h2>Tension capacity</h2>
+<div class="calc"><table id="strTen"></table></div></div>
+<h2>NYC BC 1811.7 and 1810 pile requirements</h2>
+<div class="calc"><table id="strReq"></table></div>
+<p class="note">Defaults follow NYC BC Table 1810.8. A stress cap of 0 means no cap. Steel areas are reduced by the corrosion loss. Splices, buckling, bending and lateral capacity are not checked here.</p>
+</section>
+
+<!-- DRIVING -->
+<section id="tab-driving" role="tabpanel" hidden>
+<div class="tiles" id="drvTiles"></div>
+<div class="grid">
+  <fieldset><legend>Hammer</legend>
+    <div class="row wide"><label for="hamName">Hammer</label><input id="hamName" type="text" value="Diesel hammer"></div>
+    <div class="row"><label for="Eham">Rated energy per blow</label><input id="Eham" type="number" value="42000" step="1000"><span class="unit">ft-lb</span></div>
+  </fieldset>
+  <fieldset><legend>Load test program</legend>
+    <div class="row"><label for="Asite">Building footprint<small>area of similar subsurface conditions</small></label><input id="Asite" type="number" value="12000" step="500"><span class="unit">ft²</span></div>
+    <div class="row"><label for="nArea">Areas of differing conditions</label><input id="nArea" type="number" value="1" min="1" step="1"><span class="unit">ea</span></div>
+    <div class="row"><label for="TLf">Test load<small>× design load</small></label><input id="TLf" type="number" value="2" step="0.1"><span class="unit">×</span></div>
+  </fieldset>
+</div>
+<h2>Driving criteria · Table 1811.3(a)</h2>
+<div class="calc"><table id="drvCrit"></table></div>
+<h2>Load tests · Section 1810.4</h2>
+<div class="calc"><table id="drvTest"></table></div>
+<p class="note">Table 1811.3(a) applies to allowable loads up to 40 tons; intermediate values are interpolated. Above 40 tons the wave equation may set initial driving criteria, but the final criteria and allowable load must be verified by load tests (1811.3). Table values here were transcribed from the 2022 NYC BC and must be checked against your copy.</p>
+</section>
+</div>
+
+<script>
+// AISC HP shapes: name, A in², d, bf, tw, tf, kdes
+const SHAPES=[["HP18X204",60.2,18.3,18.1,1.13,1.13,2.31],["HP18X181",53.2,18.0,18.0,1.0,1.0,2.18],["HP18X157",46.2,17.7,17.9,0.87,0.87,2.05],["HP18X135",39.9,17.5,17.8,0.75,0.75,1.93],["HP16X183",54.1,16.5,16.3,1.13,1.13,2.31],["HP16X162",47.7,16.3,16.1,1.0,1.0,2.18],["HP16X141",41.7,16.0,16.0,0.875,0.875,2.06],["HP16X121",35.8,15.8,15.9,0.75,0.75,1.93],["HP16X101",29.9,15.5,15.8,0.625,0.625,1.81],["HP16X88",25.8,15.3,15.7,0.54,0.54,1.72],["HP14X117",34.4,14.2,14.9,0.805,0.805,1.5],["HP14X102",30.1,14.0,14.8,0.705,0.705,1.38],["HP14X89",26.1,13.8,14.7,0.615,0.615,1.31],["HP14X73",21.4,13.6,14.6,0.505,0.505,1.19],["HP12X89",25.9,12.4,12.3,0.72,0.72,1.32],["HP12X84",24.6,12.3,12.3,0.685,0.685,1.38],["HP12X74",21.8,12.1,12.2,0.605,0.61,1.31],["HP12X63",18.4,11.9,12.1,0.515,0.515,1.25],["HP12X53",15.5,11.8,12.0,0.435,0.435,1.13],["HP10X57",16.7,9.99,10.2,0.565,0.565,1.25],["HP10X42",12.4,9.7,10.1,0.415,0.42,1.13],["HP8X36",10.6,8.02,8.16,0.445,0.445,1.13]];
+(function(){const sel=document.getElementById("hpName");const og=document.createElement("optgroup");og.label="HP shapes";
+ SHAPES.forEach(r=>{const o=document.createElement("option");o.value=r[0];o.textContent=r[0].replace("X","×")+" · A = "+r[1]+" in²";og.appendChild(o)});sel.appendChild(og);
+ const o=document.createElement("option");o.value="custom";o.textContent="Custom section";sel.appendChild(o);sel.value="HP14X89";})();
+// Soil layer inputs: six fixed blocks so they save and restore like every other field
+// Layer defaults: bottom El., material, γ, φ, N60, Su, β, Nt
+const LDEF=[[0,"fill",120,30,10,0,0.30,30],[-12,"org",95,0,2,300,0.20,5],[-30,"sand",125,32,15,0,0.40,40],[-45,"sand",130,36,35,0,0.55,70],[-50,"clay",120,30,8,1500,0.25,10],[-55,"sand",130,34,25,0,0.45,50]];
+(function(){const box=document.getElementById("layers");let h="";
+ const R=(n,key,lbl,val,unit,step,small)=>`<div class="row" id="${key}Row${n}"><label for="${key}${n}">${lbl}${small?`<small id="${key}H${n}">${small}</small>`:""}</label><input id="${key}${n}" type="number" value="${val}"${step?` step="${step}"`:""}><span class="unit">${unit}</span></div>`;
+ LDEF.forEach(([b,t,g,phi,N,Su,be,Nt],i)=>{const n=i+1;h+=`<div class="lyr" id="lyr${n}"><div class="ckhead lyr-h" id="lyrH${n}">Layer ${n}</div>
+  <div class="row wide"><label for="lType${n}">Material</label><select id="lType${n}"><option value="fill"${t==="fill"?" selected":""}>Fill · no skin friction</option><option value="org"${t==="org"?" selected":""}>Organic / very soft · no skin friction</option><option value="sand"${t==="sand"?" selected":""}>Granular (sand, gravel, silty sand)</option><option value="clay"${t==="clay"?" selected":""}>Cohesive (clay, clayey silt)</option></select></div>
+  ${R(n,"lBot","Bottom elevation",b,"ft")}${R(n,"lG","Total unit weight, γ",g,"pcf",5)}
+  ${R(n,"lPhi","Friction angle, φ",phi,"deg",1,"—")}${R(n,"lN","SPT N60",N,"bl/ft",1)}${R(n,"lSu","Undrained shear strength, Su",Su,"psf",50)}
+  ${R(n,"lB","Effective stress β",be,"β",0.05)}${R(n,"lNt","Toe bearing factor, Nt",Nt,"Nt",5)}</div>`;});
+ box.innerHTML=h;})();
+</script>
+<script>
+const $=id=>document.getElementById(id);
+const KEY="pile-check-v2";
+const fields=[...document.querySelectorAll("input,select")].filter(e=>e.id&&e.type!=="file"&&e.id!=="dsNewName");
+const defaults={}; fields.forEach(e=>defaults[e.id]=e.type==="checkbox"?e.checked:e.value);
+function migrate(o){if(!o)return o;o=Object.assign({},o);
+  for(let i=1;i<=6;i++){if(("lP"+i) in o){if(o["lType"+i]==="clay")o["lSu"+i]=o["lP"+i];else o["lPhi"+i]=o["lP"+i];delete o["lP"+i];}}
+  if(o.geoSrc==="geo")o.geoSrc="code";
+  if(!("corProt" in o)&&parseFloat(o.tcorr)>0)o.corProt="sacr";
+  return o;}
+try{const s=migrate(JSON.parse(localStorage.getItem(KEY)||"null")); if(s) fields.forEach(e=>{if(e.id in s){e.type==="checkbox"?e.checked=s[e.id]:e.value=s[e.id]}})}catch(_){}
+const v=id=>{const e=$(id);return e.type==="checkbox"?e.checked:(parseFloat(e.value)||0)};
+const f=(x,d=1)=>Number.isFinite(x)?x.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
+const circ=d=>Math.PI*d*d/4;
+const T=k=>k/2; // kip to tons (2,000 lb)
+const kt=(k,d=0)=>f(k,d)+" kip ("+f(T(k),d)+" t)";
+const row=(a,b,c,u,cls="")=>`<tr class="${cls}"><td>${a}</td><td class="f">${b}</td><td class="n">${c} <span class="unit">${u}</span></td></tr>`;
+const head=`<tr><th>Item</th><th>Expression</th><th style="text-align:right">Value</th></tr>`;
+const tile=(k,val,u)=>`<div class="tile"><div class="k">${k}</div><div class="v">${val} <span>${u}</span></div></div>`;
+const verdict=(r,k="Demand / capacity")=>{const ok=r<=1;return `<div class="tile verdict ${ok?"ok":"bad"}"><div class="k">${k}</div><div class="v">${f(r,2)}</div><span class="pill ${ok?"ok":"bad"}">${ok?"OK":"NG"}</span></div>`};
+const CK=(label,val,op,lim,unit="in",note="")=>{const ok=op==="≥"?val>=lim-1e-9:op==="≤"?val<=lim+1e-9:op==="<"?val<lim:val>lim;
+  const dp=unit==="ea"||unit==="ppm"||unit==="Ω·cm"?0:(unit==="in"&&lim<1)?3:2;
+  return {label,ok,act:Number.isFinite(val)?f(val,dp)+(unit?" "+unit:""):"—",req:op+" "+f(lim,dp)+(unit?" "+unit:"")+(note?" ("+note+")":"")}};
+const ckPill=(ok,failText)=>ok?`<span class="pill ok">OK</span>`:failText?`<span class="pill bad">${failText}</span>`:`<span class="pill warn">review</span>`;
+const ckTable=list=>list.map(c=>`<div class="ck ${c.ok?"":c.failText?"fail":"bad"}"><div class="ck-l">${c.label}</div><div class="ck-v"><span><b>${c.act}</b> <span class="ck-op">${c.req}</span></span>${ckPill(c.ok,c.failText)}</div></div>`).join("");
+const ckRows=list=>list.map(c=>`<tr><td>${c.label}</td><td class="f">required ${c.req}</td><td class="n">${c.act} ${ckPill(c.ok,c.failText)}</td></tr>`).join("");
+const fr=x=>{const w=Math.floor(x+1e-9),r=x-w,m={0.25:"¼",0.5:"½",0.75:"¾",0.125:"⅛",0.375:"⅜",0.625:"⅝",0.875:"⅞",0.0625:"¹⁄₁₆",0.1875:"³⁄₁₆",0.3125:"⁵⁄₁₆",0.4375:"⁷⁄₁₆",0.5625:"⁹⁄₁₆"}[+r.toFixed(4)];return r<1e-6?String(w):m?(w?w:"")+m:f(x,3)};
+const ftx=x=>f(x,1).replace(/\.0$/,"");
+
+// NYC BC Table 1810.4.1.3 basic maximum allowable pile loads, tons
+function maxLoad(type,OD,bear){
+  if(bear==="soil") return {t:75,src:"piles not bearing on rock"};
+  if(bear==="soft") return {t:80,src:"piles bearing on Class 1d soft rock"};
+  if(type==="pipeO"){const t=OD>=18?250:OD>=14?200:OD>=12?150:OD>=10?100:OD>=8?60:0;
+    return {t,src:"open-end pipe on Class 1a–1c rock, "+(OD>=18?"18-in O.D. and greater":OD>=14?"14 to 18-in O.D.":OD>=12?"12 to 14-in O.D.":OD>=10?"10 to 12-in O.D.":OD>=8?"8 to 10-in O.D.":"under 8-in O.D., not permitted")};}
+  return {t:150,src:(type==="hp"?"H-piles":"closed-end pipe")+" on Class 1a–1c rock"};
+}
+// NYC BC Table 1811.3(a): minimum driving resistance, steel and concrete piles, blows per foot
+const DR={cap:[20,30,40],E:[15000,19000,24000],soil:[[19,15,11],[30,23,18],[44,32,24]],soft:[[48,27,16],[72,40,26],[96,53,34]]};
+function drive(cap,E,bear){
+  if(bear==="rock") return {txt:"5 blows per ¼ in",n:NaN};
+  const tb=DR[bear], c=Math.min(40,Math.max(20,cap)), e=Math.min(24000,Math.max(15000,E));
+  const li=(xs,x)=>{for(let i=0;i<xs.length-1;i++) if(x<=xs[i+1]) return [i,(x-xs[i])/(xs[i+1]-xs[i])];return [xs.length-2,1];};
+  const [ci,ct]=li(DR.cap,c),[ei,et]=li(DR.E,e), at=(i,j)=>tb[i][j];
+  const r0=at(ci,ei)+(at(ci,ei+1)-at(ci,ei))*et, r1=at(ci+1,ei)+(at(ci+1,ei+1)-at(ci+1,ei))*et;
+  const n=Math.ceil(r0+(r1-r0)*ct-1e-9);
+  return {txt:n+" blows per ft",n,last:bear==="soft"?"last 6 in":"last 12 in"};
+}
+// ---------- Static analysis tables (FHWA GEC-12 / DRIVEN digitized chart values) ----------
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const interp=(xs,ys,x)=>{x=clamp(x,xs[0],xs[xs.length-1]);for(let i=0;i<xs.length-1;i++)if(x<=xs[i+1]){const t=(x-xs[i])/(xs[i+1]-xs[i]||1);return ys[i]+(ys[i+1]-ys[i])*t;}return ys[ys.length-1];};
+const interp2=(xs,ys,Z,x,y)=>{const col=ys.map((_,j)=>interp(xs,Z.map(r=>r[j]),x));return interp(ys,col,y);};
+// Nordlund Kδ for uniform piles (ω = 0): linear in log10 V between V = 0.1 and 10 ft³/ft, Tables 7-6 and 7-7
+const KD_P=[25,30,35,40], KD_1=[0.85,1.15,1.75,3.00], KD_S=[0.15,0.30,0.60,1.30];
+const Kdelta=(phi,V)=>interp(KD_P,KD_1,phi)+interp(KD_P,KD_S,phi)*Math.log10(clamp(V,0.1,10));
+// δ/φ vs displaced volume (Figure 7-9): curve a, pipe piles; curve f, H-piles. V in m³/m
+const DP_A=[[0.028,0.037,0.046,0.056,0.065,0.074,0.084,0.093,0.102,0.111,0.121,0.130,0.139,0.149,0.167,0.177],[0.342,0.410,0.466,0.516,0.559,0.593,0.627,0.652,0.673,0.697,0.717,0.733,0.749,0.763,0.788,0.798]];
+const DP_F=[[0.007,0.009,0.019,0.028,0.037],[0.727,0.747,0.827,0.8875,0.933]];
+const dRatio=(isH,Vft)=>{const c=isH?DP_F:DP_A;return interp(c[0],c[1],Vft/10.764);};
+// Correction factor CF for Kδ when δ ≠ φ (Figure 7-14)
+const CF_P=[14,18,22,26,30,34,38,42,45], CF_R=[0.2,0.4,0.6,0.8,1.0,1.2,1.4];
+const CF_T=[[0.83,0.90,0.95,0.99,1,1.01,1.02],[0.77,0.85,0.92,0.98,1,1.02,1.03],[0.71,0.80,0.89,0.97,1,1.02,1.03],[0.64,0.74,0.85,0.95,1,1.02,1.04],[0.58,0.69,0.82,0.94,1,1.03,1.06],[0.50,0.63,0.77,0.92,1,1.05,1.08],[0.42,0.56,0.72,0.90,1,1.07,1.10],[0.32,0.49,0.66,0.87,1,1.09,1.13],[0.24,0.43,0.62,0.84,1,1.12,1.16]];
+const CFk=(phi,r)=>interp2(CF_P,CF_R,CF_T,phi,r);
+// αt vs φ and D/b; N′q vs φ (Figure 7-16); limiting toe resistance qL vs φ (Figure 7-15, kPa)
+const AT_P=[20,20.5,22.5,25,27.5,30,32.5,35,36.5,37.5,40,42.5,45], AT_D=[20,30,45];
+const AT_T=[[0.365,0.256,0.177],[0.375,0.276,0.190],[0.416,0.319,0.242],[0.470,0.389,0.318],[0.525,0.460,0.400],[0.580,0.520,0.490],[0.637,0.605,0.578],[0.680,0.670,0.660],[0.7,0.7,0.7],[0.715,0.715,0.715],[0.75,0.75,0.75],[0.78,0.78,0.78],[0.8,0.8,0.8]];
+const alphaT=(phi,DB)=>interp2(AT_P,AT_D,AT_T,phi,DB);
+const NQ_P=[15,17.5,20,22.5,25,27.5,30,32.5,35,37.5,40,42.5,45], NQ_V=[4.8,6.2,8.2,12,15,21,30,43,64,98,160,265,475];
+const Nqp=phi=>interp(NQ_P,NQ_V,phi);
+const QL_P=[30,31.25,32.5,33.75,35,36.25,37.5,38.75,40,41.25,42.5,43.75], QL_V=[637.8,1077.3,1915.2,3112.2,5151.9,7785.3,11251.8,15273.7,19994.7,25137,30528.3,35316.3];
+const qLim=phi=>interp(QL_P,QL_V,phi)*0.0208854; // ksf
+// Tomlinson adhesion for smooth steel piles (DRIVEN Table 7-3), cu and ca in kPa; L/B from 10 to 40
+const TOM_C=[11,18.4,23.9,38.3,47.9,71.8,81.4,86.2,95.8,100.5,105.3,110.1,114.9,119.7,129.3,138.9,143.6,148.4];
+const TOM_40=[11.01,18.43,23.94,38.3,45.49,62,67.27,69.67,72.54,74.45,75.65,74.69,74.45,73.02,69.9,64.16,62.24,60.33];
+const TOM_10=[11.01,14.84,19.63,31.84,38.3,50.75,53.63,55.54,55.78,54.34,53.63,52.43,50.27,47.88,43.09,39.02,37.83,36.87];
+const adhesion=(Su,LB)=>{const cu=Su*0.04788;if(cu<11)return Su;const a40=interp(TOM_C,TOM_40,cu),a10=interp(TOM_C,TOM_10,cu),t=clamp((LB-10)/30,0,1);return (a10+(a40-a10)*t)/0.04788;}; // psf
+// SPT N to φ, Peck, Hanson & Thornburn (DRIVEN)
+const NPHI_N=[5,10,15,20,25,30,35,40,45,50,55,60], NPHI_P=[28.1,30,31.5,33,34.5,36,37.5,38.8,40,41,42,43];
+const phiFromN=N=>N<5?NaN:interp(NPHI_N,NPHI_P,N);
+const CNf=svPsf=>clamp(0.77*Math.log10(20/Math.max(1e-3,svPsf/2000)),0,2);
+const LNAME={fill:"Fill",org:"Organic / very soft",sand:"Granular",clay:"Cohesive"};
+const GM={nord:"Nordlund",beta:"Effective stress (β)",meyer:"Meyerhof SPT"}, CM={alpha:"α (Tomlinson)",beta:"Effective stress (β)"};
+
+function section(){
+  const type=$("pType").value, c=$("corProt").value==="sacr"?Math.max(0,v("tcorr")):0;
+  if(type==="hp"){const sh=SHAPES.find(r=>r[0]===$("hpName").value);
+    let A,d,bf,tw,tf;
+    if(sh){[,A,d,bf,tw,tf]=sh;["hpA","hpD","hpBf","hpTw","hpTf"].forEach((id,i)=>$(id).value=[A,d,bf,tw,tf][i]);}
+    else{A=v("hpA");d=v("hpD");bf=v("hpBf");tw=v("hpTw");tf=v("hpTf");}
+    const per=4*bf+2*d-2*tw, An=Math.max(0,A-c*per);
+    return {type,name:sh?sh[0].replace("X","×"):"custom H",A,d,bf,tw,tf,per,An,Fy:v("FyH"),c,
+      perim:2*(d+bf), tip:$("plug").value==="plug"?d*bf:A, wid:Math.max(d,bf)};}
+  const OD=v("OD"), t=v("tw"), ID=Math.max(0,OD-2*t), A=circ(OD)-circ(ID), An=Math.max(0,circ(OD-2*c)-circ(ID));
+  const fill=v("fill"), nR=fill?Math.max(0,Math.round(v("rN"))):0, Ar=nR*parseFloat($("rBar").value), Ac=fill?Math.max(0,circ(ID)-Ar):0;
+  const plugged=type==="pipeC"||$("plug").value==="plug";
+  return {type,name:"⌀"+fr(OD)+"″ × "+fr(t)+"″ pipe",OD,t,ID,A,An,Fy:v("FyP"),c,fill,nR,Ar,Ac,fc:v("fc"),fyR:v("fyR"),
+    perim:Math.PI*OD, tip:plugged?circ(OD):A, wid:OD};
+}
+
+function layersInfo(){
+  const nL=parseInt($("nL").value)||1, Egs=v("Egs"), tor=v("Etor"), L=[], gm=$("gMeth").value, cm=$("cMeth").value;
+  let top=Egs;
+  for(let i=1;i<=6;i++){$("lyr"+i).hidden=i>nL; if(i>nL) continue;
+    const last=i===nL, bot=last?tor:Math.min(top,Math.max(tor,v("lBot"+i)));
+    $("lBot"+i).disabled=last; $("lBotRow"+i).hidden=last; if(last) $("lBot"+i).value=tor;
+    const t=$("lType"+i).value, sand=t==="sand", clay=t==="clay", beta=(sand&&gm==="beta")||(clay&&cm==="beta");
+    $("lPhiRow"+i).hidden=!sand; $("lNRow"+i).hidden=!sand; $("lSuRow"+i).hidden=!clay; $("lBRow"+i).hidden=$("lNtRow"+i).hidden=!beta;
+    const pN=phiFromN(v("lN"+i)); $("lPhiH"+i).textContent=Number.isFinite(pN)?"from N60 ≈ "+f(pN,1)+"° (Peck et al.)":"N60 < 5: use lab or judgement";
+    $("lyrH"+i).textContent="Layer "+i+" · El. "+ftx(top)+"′ to "+ftx(bot)+"′";
+    L.push({i,top,bot,t,g:v("lG"+i),phi:v("lPhi"+i),N:v("lN"+i),Su:v("lSu"+i),b:v("lB"+i),Nt:v("lNt"+i)}); top=bot;}
+  return L;
+}
+// Static capacity by every method, integrated in thin slices from ground surface to tip
+function staticCap(L,S,Etip,GWT){
+  const Egs=v("Egs"), dz=0.25, gw=62.4, isH=S.type==="hp", gm=$("gMeth").value, cm=$("cMeth").value;
+  const per=S.perim/12, At=S.tip/144, B=S.wid/12, D=Math.max(0.01,Egs-Etip), LB=D/B;
+  const plug=S.type==="pipeC"||(S.type==="pipeO"&&$("plug").value==="plug");
+  const Vft=isH?S.A/144:plug?circ(S.OD)/144:S.A/144, disp=plug&&!isH, dr=dRatio(isH,Vft);
+  const res=L.map(l=>({...l,Q:{nord:0,beta:0,meyer:0,alpha:0},len:0,sv:0,Nc:0,kd:NaN,cf:NaN}));
+  let sv=0;
+  const lay=z=>res.find(l=>z<=l.top+1e-9&&z>=l.bot-1e-9)||res[res.length-1];
+  for(let z=Egs;z>Etip+1e-9;z-=dz){const h=Math.min(dz,z-Etip), zm=z-h/2, l=lay(zm);
+    const gEff=l.g-(zm<GWT?gw:0), svm=sv+gEff*h/2; sv+=gEff*h;
+    const A=per*h; // ft²
+    if(l.t==="sand"){const kd=Kdelta(clamp(l.phi,25,40),Vft), cf=CFk(l.phi,dr), d=dr*l.phi*Math.PI/180;
+      l.kd=kd; l.cf=cf;
+      l.Q.nord+=kd*cf*svm*Math.sin(d)/1000*A;
+      l.Q.beta+=l.b*svm/1000*A;
+      const Nc=CNf(svm)*l.N; l.Nc+=Nc*h; l.Q.meyer+=(disp?Math.min(Nc/50,1):Math.min(Nc/100,0.5))*2*A;}
+    else if(l.t==="clay"){l.Q.alpha+=adhesion(l.Su,LB)/1000*A; l.Q.beta+=l.b*svm/1000*A;}
+    l.len+=h; l.sv=svm;}
+  res.forEach(l=>{l.Nc=l.len>0?l.Nc/l.len:0; l.ca=l.t==="clay"?adhesion(l.Su,LB):0;});
+  const tipL=lay(Etip+0.01), lim=v("ptLim");
+  // toe resistance by method
+  const qb={nord:0,beta:0,meyer:0,alpha:0}, qtxt={nord:"",beta:"",meyer:"",alpha:""};
+  if(tipL.t==="sand"){const p=tipL.phi, pt=lim?Math.min(sv,3000):sv, at=alphaT(p,clamp(D/B,20,45)), nq=Nqp(p), ql=qLim(p);
+    let q=at*nq*pt/1000; qtxt.nord="αt·N′q·p′t = "+f(at,3)+" × "+f(nq,1)+" × "+f(pt/1000,2)+" ksf"+(lim&&sv>3000?" (p′t ≤ 3 ksf)":"");
+    if(q>ql){q=ql;qtxt.nord+=", limited to qL "+f(ql,1)+" ksf";} qb.nord=q;
+    qb.beta=tipL.Nt*sv/1000; qtxt.beta="Nt·p′t = "+f(tipL.Nt,0)+" × "+f(sv/1000,2)+" ksf";
+    const Nt=CNf(sv)*tipL.N, Db=Math.max(0,tipL.top-Etip), qm=Math.min(0.8*Nt*Db/B,8*Nt)*2;
+    qb.meyer=qm; qtxt.meyer="0.8·N′60·Db/b ≤ 8·N′60 tsf, N′60 "+f(Nt,1)+", Db/b "+f(Db/B,1);}
+  else if(tipL.t==="clay"){qb.alpha=9*tipL.Su/1000; qtxt.alpha="9·Su = 9 × "+f(tipL.Su,0)+" psf"; qb.beta=tipL.Nt*sv/1000; qtxt.beta="Nt·p′t = "+f(tipL.Nt,0)+" × "+f(sv/1000,2)+" ksf";}
+  const pick=(l,g)=>l.t==="sand"?l.Q[g]:l.t==="clay"?l.Q[cm]:0;
+  const tipM=g=>tipL.t==="sand"?g:tipL.t==="clay"?cm:null;
+  const comp=Object.keys(GM).map(g=>{const Qs=res.reduce((a,l)=>a+pick(l,g),0), tm=tipM(g), q=tm?qb[tm]:0;return {g,Qs,q,Qb:q*At,Qu:Qs+q*At,qTxt:tm?qtxt[tm]:"no toe resistance in "+LNAME[tipL.t].toLowerCase()};});
+  const sel=comp.find(c=>c.g===gm);
+  res.forEach(l=>{l.Qsel=pick(l,gm);});
+  return {res,comp,Qs:sel.Qs,Qb:sel.Qb,q:sel.q,qTxt:sel.qTxt,svTip:sv,tipL,Vft,dr,disp,D,B,LB,At,gm,cm};
+}
+
+
+function corr(){
+  const lab=v("corLab"), prot=$("corProt").value, ck=[];
+  $("corLabBox").hidden=!lab; $("tcorrRow").hidden=$("corLifeRow").hidden=prot!=="sacr";
+  if(lab){const rho=v("corRho"),pH=v("corPH"),so=v("corSO4"),cl=v("corCl");
+    ck.push(CK("Resistivity",rho,"≥",1000,"Ω·cm","NYC BC 1814.2.1"),CK("pH",pH,"≥",5.5,"","NYC BC 1814.2.1"),CK("Sulfate",so,"≤",1000,"ppm","NYC BC 1814.2.1"));
+    ck.push(CK("Resistivity",rho,"≥",2000,"Ω·cm","FHWA GEC-12 6.12"),CK("pH",pH,"≥",4.5,"","FHWA GEC-12 6.12"));
+    if(rho>=2000&&rho<=5000) ck.push(CK("Chloride, resistivity 2,000 to 5,000 Ω·cm",cl,"≤",100,"ppm","FHWA GEC-12 6.12"),CK("Sulfate, resistivity 2,000 to 5,000 Ω·cm",so,"≤",200,"ppm","FHWA GEC-12 6.12"));}
+  [["corFill","Landfill, cinder fill or mine waste","NYC BC 1814.2.1"],["corSalt","Salt water or seawater exposure","NYC BC 1810.2.12"],["corWL","Changing water levels along the pile","NYC BC 1810.2.12"],["corEl","Stray electrical current","NYC BC 1810.2.12"]]
+    .forEach(([id,l,ref])=>{if(v(id))ck.push({label:l,ok:false,act:"present",req:"aggressive ("+ref+")"});});
+  const aggr=ck.some(c=>!c.ok);
+  if(!lab&&!aggr) ck.push({label:"Corrosivity",ok:false,act:"no lab tests",req:"confirm with the geotechnical report"});
+  if(aggr&&prot==="none") ck.push({label:"Corrosion protection",ok:false,act:"none selected",req:"required (1810.2.12)",failText:"Protection required"});
+  $("corCk").innerHTML=ckTable(ck);
+  const life=v("corLife"); $("corHint").textContent=prot==="sacr"?"FHWA GEC-12 6.12: about 0.003 in/yr in fill or disturbed soil, or "+f(0.003*life,3)+" in per face over "+f(life,0)+" years. Use the geotechnical report rate where given.":aggr?"Aggressive conditions found: select a protection method acceptable to the engineer (1810.2.12).":"";
+  return {aggr,prot,lab,ck};
+}
+function calc(){
+  const CR=corr(), type=$("pType").value, isH=type==="hp", S=section();
+  $("hpBox").hidden=!isH; $("pipeBox").hidden=isH; $("hpCustom").hidden=isH||$("hpName").value!=="custom";
+  $("plugRow").hidden=type==="pipeC"; $("fillBox").hidden=isH||!v("fill");
+  $("rBarRow").hidden=$("fyRRow").hidden=!(v("rN")>0);
+  ["kc","kr","krCap"].forEach(id=>$(id).closest(".row").hidden=isH);
+  if(isH) $("hpDimTxt").textContent=f(S.d,2)+" × "+f(S.bf,2)+" · "+f(S.tw,3)+" / "+f(S.tf,3)+" in";
+  const P=v("PS")+v("PO"), Pdd=v("PDD"), Pt=P+Pdd, Pu=v("PU");
+  $("Ptxt").textContent=kt(Pt);
+  // geometry
+  const bear=$("bear").value, onRock=bear!=="soil", tor=v("Etor"), Egs=v("Egs"), GWT=v("GWT");
+  $("rClsRow").hidden=bear!=="rock"; $("rPenRow").hidden=!onRock; $("EtipRow").hidden=onRock;
+  const Etip=onRock?tor-Math.max(0,v("rPen")):Math.max(tor,Math.min(Egs,v("EtipS")));
+  const Lp=v("Ecut")-Etip; $("Ltxt").textContent=f(Lp,1)+" ft";
+  const L=layersInfo(), st=staticCap(L,S,onRock?Math.max(Etip,tor):Etip,GWT);
+  const cls=bear==="rock"?"Class "+$("rCls").value:bear==="soft"?"Class 1d":"soil";
+  // ---------- Geotechnical ----------
+  const src=$("geoSrc").value, staticOk=bear==="soil";
+  $("geoSrc").querySelector('option[value="static"]').disabled=!staticOk;
+  const srcE=src==="static"&&!staticOk?"code":src; if(srcE!==src) $("geoSrc").value=srcE;
+  $("QuserRow").hidden=srcE!=="test";
+  const mx=maxLoad(type,isH?0:S.OD,bear), Qmax=mx.t*2, cap=v("exceed")?Infinity:Qmax;
+  const FSc=Math.max(0.01,v("FSc")), FSt=Math.max(0.01,v("FSt")), Qult=st.Qs+st.Qb;
+  const Qbasis=srcE==="static"?Qult/FSc:srcE==="code"?Qmax:v("Quser");
+  const LT=v("LT"), noTest=80; // 40 tons without load test, 1810.3.1 exception 3
+  const Qgeo=Math.min(Qbasis,cap,LT?Infinity:noTest);
+  const needTest=Pt>noTest;
+  const govG=Qgeo===Qbasis?(srcE==="static"?"static analysis ("+GM[st.gm]+")":srcE==="code"?"Table 1810.4.1.3":"load test"):Qgeo===cap?"Table 1810.4.1.3":"40-ton limit without load test";
+  const rG=Pt/Qgeo;
+  // uplift
+  const QsT=st.Qs*v("tRat"), QupG=QsT/FSt, rU=Pu>0?Pu/QupG:0;
+  // ---------- Structural ----------
+  const hi=v("hiS"), kS=hi?v("ksH"):v("ks"), capS=hi?v("ksHCap"):v("ksCap");
+  let Fs=kS*S.Fy; if(capS>0) Fs=Math.min(Fs,capS);
+  const Fc=isH?0:v("kc")*S.fc, Fr0=v("kr")*S.fyR||0, Fr=isH?0:(v("krCap")>0?Math.min(Fr0,v("krCap")):Fr0);
+  const Qs_s=Fs*S.An, Qs_c=isH?0:Fc*S.Ac, Qs_r=isH?0:Fr*S.Ar, Qstr=Qs_s+Qs_c+Qs_r, rS=Pt/Qstr;
+  const QstrT=Fs*S.An, rT=Pu>0?Pu/QstrT:0;
+  // ---------- 1811.7 / 1810 requirements ----------
+  const req=[]; const E=v("Eham");
+  if(isH){const tmin=Math.min(S.tf,S.tw), proj=(S.bf-S.tw)/2;
+    req.push(CK("Flange projection / minimum thickness",proj/tmin,"≤",14,"","1811.7.3"));
+    req.push(CK("Flange width / depth",S.bf/S.d,"≥",0.8,"","1811.7.3"));
+    req.push(CK("Nominal depth of web",S.d,"≥",8,"in","1811.7.3"));
+    req.push(CK("Minimum flange or web thickness",tmin,"≥",0.375,"in","1811.7.3"));}
+  else{req.push(CK("Outside diameter",S.OD,"≥",8,"in","1811.7.4"));
+    if(type==="pipeO"){req.push(CK("Steel area per 1,000 ft-lb hammer energy",S.A/(E/1000),"≥",0.34,"in²","1811.7.4, "+f(E,0)+" ft-lb"));
+      req.push(S.t<0.188?{label:"Cutting shoe at tip",ok:false,act:"t = "+f(S.t,3)+" in",req:"shoe required where t < 0.188 in (1811.7.4)",failText:"Provide cutting shoe"}:{label:"Cutting shoe at tip",ok:true,act:"t = "+f(S.t,3)+" in",req:"not required, t ≥ 0.188 in (1811.7.4)"});}
+    if(S.fill&&$("sdc").value==="D") req.push(CK("Fill concrete f′c",S.fc,"≥",3,"ksi","1810.9.2"));
+    if(S.Fy>=80) req.push({label:"High-strength pipe (API 5CT N80)",ok:true,act:"Fy = "+f(S.Fy,0)+" ksi",req:"CJP splices, no rebar welded to pipe (1811.7.1)"});}
+  req.push({label:"Corrosion protection",ok:!CR.aggr||CR.prot!=="none",act:CR.aggr?"aggressive":"not aggressive",req:{none:"none",sacr:"sacrificial loss "+fr(v("tcorr"))+"″ per face",coat:"coating",encase:"concrete encasement",other:"method approved by engineer"}[CR.prot]+" (1810.2.12)",failText:"Protection required"});
+  if(hi) req.push({label:"Steel stress 0.5 Fy justified by load tests",ok:LT,act:LT?"load tests planned":"no load tests",req:"per 1810.4.1.5.1"});
+  req.push({label:"Bearing stratum and tip elevation shown on plans",ok:true,act:"tip El. "+f(Etip,1)+"′",req:"note on plans (1810.3.1.3)"});
+  const reqOk=req.every(c=>c.ok);
+  // ---------- Driving ----------
+  const capT=T(Pt), dr=capT<=40?drive(capT,E,bear):null;
+  const A=v("Asite"), nA=Math.max(1,Math.round(v("nArea")));
+  const perA=A<=5000?1:A<=30000?2:2+Math.ceil((A-30000)/20000-1e-9), nTest=needTest||LT?perA*nA:0, nDyn=nTest>=2?Math.floor(nTest/2):0;
+  const drvOk=E>=15000||!dr?true:false;
+  const drvIssues=[];
+  if(dr&&E<15000) drvIssues.push("hammer energy under 15,000 ft-lb, the smallest in Table 1811.3(a)");
+  if(needTest&&!LT) drvIssues.push("load above 40 tons without load tests");
+
+  // ---------- Output: geotech ----------
+  $("geoTiles").innerHTML=verdict(rG,"Geotechnical D/C")+tile("Allowable geotechnical",f(Qgeo,0),"kip")+tile("Table 1810.4.1.3 max",f(mx.t,0),"tons")+
+    `<div class="tile verdict ${needTest&&!LT?"bad":"ok"}"><div class="k">Load tests</div><div class="v" style="font-size:16px">${needTest?"Required":"Not required"}</div><span class="code">${needTest?"design load > 40 tons":"≤ 40 tons, 1810.3.1 exc. 3"}</span></div>`+
+    (Pu>0?verdict(rU,"Uplift D/C"):"");
+  const crit=[["Structural",Qstr],[srcE==="static"?"Static analysis":srcE==="test"?"Load test":"Geotechnical basis",Qbasis],["Table 1810.4.1.3",v("exceed")?NaN:Qmax],...(LT?[]:[["No load test limit",noTest]])].filter(c=>Number.isFinite(c[1]));
+  const allow=Math.min(...crit.map(c=>c[1])), govC=crit.find(c=>c[1]===allow)[0], mxB=Math.max(...crit.map(c=>c[1]),Pt);
+  $("capSum").innerHTML=`<div class="ckhead" style="margin:0 0 2px">Allowable pile load by criterion · governing ${f(allow,0)} kip (${f(T(allow),0)} t)</div>`+
+    crit.map(([n,Q])=>`<div class="bar-r"><span>${n}</span><div class="bar-t"><div class="bar-f${n===govC?" gov":""}" style="width:${Q/mxB*100}%"></div></div><b>${f(Q,0)}</b></div>`).join("")+
+    `<div class="bar-r"><span>Demand</span><div class="bar-t"><div class="bar-f" style="width:${Pt/mxB*100}%;background:var(--warn)"></div></div><b>${f(Pt,0)}</b></div>`;
+  const meth=l=>l.t==="sand"?GM[st.gm]:l.t==="clay"?CM[st.cm]:"no credit";
+  const note=l=>l.len<=0?"":l.t==="sand"?(st.gm==="nord"?"Kδ "+f(l.kd,2)+" · CF "+f(l.cf,2)+" · δ "+f(st.dr*l.phi,1)+"°":st.gm==="beta"?"β "+f(l.b,2):"avg N′60 "+f(l.Nc,1)+(st.disp?" · N′/50 ≤ 1 tsf":" · N′/100 ≤ 0.5 tsf")):l.t==="clay"?(st.cm==="alpha"?"ca "+f(l.ca,0)+" psf · ca/Su "+f(l.Su>0?l.ca/l.Su:0,2):"β "+f(l.b,2)):"";
+  $("geoLayers").innerHTML=`<tr><th>Layer</th><th>Material · method</th><th style="text-align:right">Length</th><th style="text-align:right">σ′v at bottom</th><th style="text-align:right">Avg fs</th><th style="text-align:right">Qs</th></tr>`+
+    st.res.map(l=>`<tr><td>${l.i} · El. ${ftx(l.top)}′ to ${ftx(l.bot)}′</td><td class="f">${LNAME[l.t]}${l.t==="sand"?", φ "+f(l.phi,0)+"°, N60 "+f(l.N,0):l.t==="clay"?", Su "+f(l.Su,0)+" psf":""} · ${meth(l)}${note(l)?"<br><span hidden>; </span>"+note(l):""}</td><td class="n">${f(l.len,1)} <span class="unit">ft</span></td><td class="n">${l.len>0?f(l.sv/1000,2):"—"} <span class="unit">ksf</span></td><td class="n">${l.len>0?f(l.Qsel/(S.perim/12*l.len),2):"—"} <span class="unit">ksf</span></td><td class="n">${f(l.Qsel,0)} <span class="unit">kip</span></td></tr>`).join("")+
+    `<tr class="sum"><td>Total shaft resistance</td><td class="f">perimeter ${f(S.perim,1)} in${isH?" (box)":""}</td><td class="n">${f(st.res.reduce((a,l)=>a+l.len,0),1)} <span class="unit">ft</span></td><td></td><td></td><td class="n">${f(st.Qs,0)} <span class="unit">kip</span></td></tr>`;
+  $("geoComp").innerHTML=`<tr><th>Granular method</th><th style="text-align:right">Shaft, Rs</th><th style="text-align:right">Toe, Rt</th><th style="text-align:right">Ultimate</th><th style="text-align:right">Allowable</th></tr>`+
+    st.comp.map(c=>`<tr class="${c.g===st.gm?"sum":""}"><td>${GM[c.g]}${c.g===st.gm?" (selected)":""}</td><td class="n">${f(c.Qs,0)} <span class="unit">kip</span></td><td class="n">${f(c.Qb,0)} <span class="unit">kip</span></td><td class="n">${f(c.Qu,0)} <span class="unit">kip</span></td><td class="n">${f(c.Qu/FSc,0)} <span class="unit">kip</span></td></tr>`).join("");
+  $("geoCalc").innerHTML=head+
+    row("Compression demand","service + transient + downdrag",kt(Pt),"")+
+    (srcE==="static"?
+      row("Displaced volume, V",(isH?"H-pile steel area":st.disp?"full section, plugged / closed":"steel area, unplugged")+"; δ/φ from FHWA Fig. 7-9",f(st.Vft,3)+" ft³/ft · δ/φ "+f(st.dr,2),"")+
+      row("Embedded length, D / width, b","penetration ratio D/b "+f(st.D/st.B,1),f(st.D,1)+" ft / "+f(st.B*12,1)+" in","")+
+      row("Ultimate shaft resistance, Rs","Σ fs · perimeter · length; granular: "+GM[st.gm]+", cohesive: "+CM[st.cm],f(st.Qs,0),"kip")+
+      row("Unit toe resistance, tip in "+LNAME[st.tipL.t].toLowerCase(),st.qTxt,f(st.q,1),"ksf")+
+      row("Ultimate toe resistance, Rt","q × "+f(S.tip,1)+" in² toe area ("+(S.type==="pipeC"?"closed end":$("plug").value==="plug"?"plugged":"steel only")+")",f(st.Qb,0),"kip")+
+      row("Ultimate capacity","Rs + Rt",f(Qult,0),"kip")+
+      row("Allowable by static analysis","Qult ÷ FS "+f(FSc,1),f(Qult/FSc,0),"kip")
+    : srcE==="code"? row("Basic maximum allowable load",mx.src+(onRock?", "+cls:""),kt(Qmax),"")
+    : row("Allowable load from load test","lesser of the 1810.4.1.5 criteria",kt(Qbasis),""))+
+    (srcE!=="code"?row("Table 1810.4.1.3 limit",v("exceed")?"exceeded, substantiated per 1810.4.1.5.1":mx.src,v("exceed")?"none":kt(Qmax),""):"")+
+    (!LT?row("Limit without load test","1810.3.1 exception 3",kt(noTest),""):"")+
+    row("Allowable geotechnical capacity",govG+" governs",kt(Qgeo),"","sum")+
+    row("Demand / capacity","",`<span class="pill ${rG<=1?"ok":"bad"}">${f(rG,2)}</span>`,"","sum")+
+    (Pu>0?row("Ultimate shaft resistance in tension","Rs × "+f(v("tRat"),2)+" ("+GM[st.gm]+")",f(QsT,0),"kip")+row("Allowable uplift","÷ FS "+f(FSt,1)+" (1810.3.4)",f(QupG,0),"kip","sum")+
+      row("Uplift demand / capacity",f(Pu,0)+" ÷ "+f(QupG,0),`<span class="pill ${rU<=1?"ok":"bad"}">${f(rU,2)}</span>`,"","sum"):"");
+
+  // ---------- Output: structural ----------
+  $("strTiles").innerHTML=tile("Allowable structural",f(Qstr,0),"kip")+verdict(rS,"Compression D/C")+(Pu>0?verdict(rT,"Tension D/C"):"")+
+    `<div class="tile verdict ${reqOk?"ok":"bad"}"><div class="k">Code requirements</div><div class="v" style="font-size:16px">${reqOk?"All met":req.filter(c=>!c.ok).length+" not met"}</div></div>`;
+  const steelRow=row("Steel "+S.name,f(Fs,1)+" ksi × "+f(S.An,2)+" in² net",f(Qs_s,0),"kip");
+  $("strComp").innerHTML=head+
+    (isH?row("Gross area","AISC",f(S.A,2),"in²")+row("Corrosion loss","c × perimeter = "+f(S.c,4)+" × "+f(S.per,1)+" in",f(S.A-S.An,2),"in²")
+       :row("Gross steel area","π·("+f(S.OD,3)+"² − "+f(S.ID,3)+"²)/4",f(S.A,2),"in²")+row("Corrosion loss","outside face, "+f(S.c,4)+" in",f(S.A-S.An,2),"in²"))+
+    row("Net steel area","",f(S.An,2),"in²")+
+    row("Allowable steel stress",(hi?"justified: min("+f(v("ksH"),2):"standard: min("+f(v("ks"),2))+" × "+f(S.Fy,0)+", "+f(capS,0)+" ksi cap)",f(Fs,1),"ksi")+
+    steelRow+
+    (!isH&&S.fill?row("Concrete fill",f(v("kc"),2)+" × "+f(S.fc,1)+" ksi × "+f(S.Ac,1)+" in²",f(Qs_c,0),"kip"):"")+
+    (!isH&&S.Ar>0?row("Reinforcement, "+S.nR+" bars",f(Fr,1)+" ksi × "+f(S.Ar,2)+" in²",f(Qs_r,0),"kip"):"")+
+    row("Allowable structural capacity","Σ",kt(Qstr),"","sum")+
+    row("Demand","service + transient + downdrag",f(Pt,0),"kip")+
+    row("Demand / capacity","",`<span class="pill ${rS<=1?"ok":"bad"}">${f(rS,2)}</span>`,"","sum");
+  $("tenSec").hidden=!(Pu>0);
+  $("strTen").innerHTML=Pu>0?head+row("Allowable tension, steel only",f(Fs,1)+" ksi × "+f(S.An,2)+" in²",f(QstrT,0),"kip","sum")+row("Uplift demand","",f(Pu,0),"kip")+
+    row("Demand / capacity","",`<span class="pill ${rT<=1?"ok":"bad"}">${f(rT,2)}</span>`,"","sum"):"";
+  $("strReq").innerHTML=head+ckRows(req);
+
+  // ---------- Output: driving ----------
+  $("drvTiles").innerHTML=`<div class="tile verdict ${drvIssues.length?"bad":"ok"}"><div class="k">Driving criteria</div><div class="v" style="font-size:16px">${dr?dr.txt:"By load test"}</div><span class="code">${dr?(dr.last?"sustained, "+dr.last:cls+" rock"):"wave equation sets initial criteria"}</span></div>`+
+    tile("Design load",f(capT,1),"tons")+tile("Static load tests",nTest,"min.")+tile("Test load",f(Pt*v("TLf"),0),"kip");
+  $("drvCrit").innerHTML=head+
+    row("Design load","(P + downdrag) ÷ 2 kip/ton",f(capT,1),"tons")+
+    row("Hammer rated energy",TXs($("hamName").value),f(E,0),"ft-lb")+
+    (dr?row("Bearing condition",bear==="rock"?cls+" rock":bear==="soft"?"Class 1d soft rock":"soil, Classes 2 to 5","","")+
+        row("Minimum driving resistance",bear==="rock"?"Table 1811.3(a), rock Classes 1a–1c":"Table 1811.3(a), "+f(Math.max(20,Math.min(40,capT)),1)+" t at "+f(Math.min(24000,Math.max(15000,E)),0)+" ft-lb, interpolated",dr.txt,"","sum")+
+        (dr.last?row("Sustained over","Table 1811.3(a) note c",dr.last,""):"")+
+        row("Refusal","note c: 2 × tabulated blows per inch, or no net penetration","","")+
+        (E>24000?row("Hammer energy above table","24,000 ft-lb column used (conservative)","","")+"":"")+
+        (E<15000?row("Hammer energy below table","not covered by Table 1811.3(a)",`<span class="pill bad">NG</span>`,""):"")
+      :row("Allowable load above 40 tons","wave equation may set initial criteria; final criteria verified by load tests (1811.3)","","","sum"))+
+    row("Final 20 blows","energy verified over final 20 blows (1811.2)","","")+
+    row("Vibratory installation","permitted only if seated with impact hammer to final criteria (1811.4)","","");
+  $("drvTest").innerHTML=head+
+    row("Load tests required",needTest?"design load "+f(capT,1)+" t > 40 t (1810.3.1)":LT?"not required at ≤ 40 t, planned anyway":"not required at ≤ 40 t",needTest||LT?"yes":"no","")+
+    (nTest>0?row("Tests per area of similar conditions",A<=5000?"site ≤ 5,000 ft²: 1":A<=30000?"5,000 to 30,000 ft²: 2":"2 + 1 per 20,000 ft² over 30,000",perA,"ea")+
+      row("Minimum static load tests",perA+" × "+nA+" area"+(nA>1?"s":"")+", per pile type",nTest,"ea","sum")+
+      (nDyn?row("Of which may be high-strain dynamic","not more than half, with approval (1810.4.1.4)",nDyn,"ea"):"")+
+      row("Test load",f(v("TLf"),1)+" × design load",kt(Pt*v("TLf")),"")+
+      row("Hold at test load","until settlement ≤ 0.001 in/hr, 12 hr min."+(v("exceed")?"; final increment 24 hr (1810.4.1.5.1)":"")+" (1810.4.1.3)","","")+
+      row("Acceptance","lesser of 50% of load at net settlement 0.01 in/ton and 50% of load at ¾ in net (1810.4.1.5)","","")+
+      row("Max. net settlement at 2 × design load","min(0.01 in/ton × "+f(T(2*Pt),0)+" t, ¾ in)",f(Math.min(0.01*T(2*Pt),0.75),2),"in","sum")+(v("TLf")<2?row("Test load below 2 × design","acceptance takes 50% of the test load",`<span class="pill bad">NG</span>`,""):""):"")+
+    (Pu>0?row("Uplift load tests","1810.4.2, same count rule as compression",LT?"required":"or FS 3 by analysis",""):"");
+  $("dot-geo").className="dot "+(rG<=1&&rU<=1&&!(needTest&&!LT)?"ok":"bad");
+  $("dot-str").className="dot "+(rS<=1&&rT<=1&&reqOk?"ok":"bad");
+  $("dot-drv").className="dot "+(drvIssues.length?"bad":"ok");
+  window.SK={S,L,Etip,P:Pt,bear,cls,st};
+  plan(S); sketch();
+  try{const s={};fields.forEach(e=>s[e.id]=e.type==="checkbox"?e.checked:e.value);localStorage.setItem(KEY,JSON.stringify(s))}catch(_){}
+}
+const TXs=s=>String(s).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+
+const seg=(y0,y1,x)=>({y0:Math.min(y0,y1),y1:Math.max(y0,y1),x:typeof x==="function"?x:()=>x});
+const circSeg=(cx,cy,r,fr0=0.9)=>seg(cy-r*fr0,cy+r*fr0,y=>cx+Math.sqrt(Math.max(0,r*r-(y-cy)*(y-cy))));
+function spreadOnce(items,top,bottom,gap){
+  items.sort((a,b)=>a.pref-b.pref);
+  items.forEach((it,i)=>{it.ly=Math.max(it.pref,top,i?items[i-1].ly+gap:top);});
+  for(let i=items.length-1;i>=0;i--){const lim=i===items.length-1?bottom:items[i+1].ly-gap;if(items[i].ly>lim)items[i].ly=lim;}
+  items.forEach((it,i)=>{if(i&&it.ly<items[i-1].ly+gap)it.ly=items[i-1].ly+gap;});}
+function snap(it){let best=null,bd=Infinity;
+  (it.segs||[]).forEach(g=>{const y=Math.min(g.y1,Math.max(g.y0,it.ly)),d=Math.abs(y-it.ly);if(d<bd){bd=d;best={x:g.x(y),y};}});
+  if(best){it.ax=best.x;it.ay=best.y;} it.flat=Math.abs(it.ay-it.ly)<0.6; return it;}
+function spreadLabels(items,top,bottom,gap){
+  items.forEach(it=>{it.pref=it.ay;});
+  for(let pass=0;pass<3;pass++){spreadOnce(items,top,bottom,gap);items.forEach(snap);items.forEach(it=>{it.pref=it.ay;});}
+  spreadOnce(items,top,bottom,gap);items.forEach(snap);
+  return items;}
+function calloutSvg(items,xEnd,xText){return items.map(it=>{
+  const dy=Math.abs(it.ly-it.ay), kx=Math.min(xEnd-6,it.ax+Math.max(6,dy));
+  const pts=it.flat?`${it.ax},${it.ly} ${xEnd},${it.ly}`:`${it.ax},${it.ay} ${kx},${it.ly} ${xEnd},${it.ly}`;
+  return `<circle cx="${it.ax}" cy="${it.ay}" r="2.2" fill="${it.col}"/><polyline points="${pts}" fill="none" stroke="${it.col}" stroke-width="0.8"/>`+
+  `<text x="${xText}" y="${it.ly-1}" style="fill:${it.col}">${it.t1}</text>`+(it.t2?`<text x="${xText}" y="${it.ly+11}">${it.t2}</text>`:"");}).join("");}
+
+const LCOL={fill:"#e3d9c3",org:"#cdc3a6",sand:"#f1e6c6",clay:"#d9cdb5"};
+function plan(S){
+  const Sz=220,LW=200,W=Sz+LW,c=Sz/2, Dm=S.type==="hp"?Math.hypot(S.d,S.bf):S.OD, k=(Sz-40)/Math.max(1,Dm), X=x=>c+x*k, Y=y=>c+y*k;
+  let g=`<rect x="0" y="0" width="${Sz}" height="${Sz}" fill="var(--soil)" rx="6"/>`; const L=[];
+  if(S.type==="hp"){const {d,bf,tw,tf,c:cr}=S, ft=Math.max(1.5,tf*k), wt=Math.max(1.2,tw*k);
+    g+=`<g fill="var(--accent)"><rect x="${X(-bf/2)}" y="${Y(-d/2)}" width="${bf*k}" height="${ft}"/><rect x="${X(-bf/2)}" y="${Y(d/2)-ft}" width="${bf*k}" height="${ft}"/><rect x="${X(-tw/2)}" y="${Y(-d/2)}" width="${wt}" height="${d*k}"/></g>`;
+    if($("plug").value==="plug") g+=`<rect x="${X(-bf/2)}" y="${Y(-d/2)}" width="${bf*k}" height="${d*k}" fill="none" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+    L.push({ax:X(bf/2),ay:Y(-d/2)+ft/2,segs:[seg(Y(-d/2),Y(-d/2)+ft,X(bf/2)),seg(Y(d/2)-ft,Y(d/2),X(bf/2))],col:"var(--accent)",t1:S.name,t2:"Fy "+f(S.Fy,0)+" ksi · A "+f(S.A,1)+" in²"});
+    L.push({ax:X(tw/2),ay:c,segs:[seg(Y(-d/2)+ft+3,Y(d/2)-ft-3,X(tw/2)+wt-tw*k)],col:"var(--ink)",t1:"d "+f(d,2)+"″ · bf "+f(bf,2)+"″",t2:"tw "+fr(+tw.toFixed(4))+"″ · tf "+fr(+tf.toFixed(4))+"″"});
+    if(cr>0) L.push({ax:X(bf/2),ay:Y(d/2)-ft/2,segs:[seg(Y(d/2)-ft,Y(d/2),X(bf/2))],col:"var(--warn)",t1:"corrosion loss",t2:fr(cr)+"″ each face → "+f(S.An,1)+" in² net"});
+    if($("plug").value==="plug") L.push({ax:X(bf/2),ay:Y(d/4),segs:[seg(Y(-d/2)+ft,Y(d/2)-ft,X(bf/2))],col:"var(--muted)",t1:"plugged box",t2:"perimeter "+f(S.perim,1)+"″"});
+  } else {
+    const R=S.OD/2, r=S.ID/2;
+    g+=`<circle cx="${c}" cy="${c}" r="${R*k}" fill="var(--accent)"/><circle cx="${c}" cy="${c}" r="${Math.max(0,r*k)}" fill="${S.fill?"var(--conc)":"var(--sheet)"}"/>`;
+    if(S.c>0) g+=`<circle cx="${c}" cy="${c}" r="${(R-S.c)*k}" fill="none" stroke="var(--warn)" stroke-width="0.8" stroke-dasharray="3 2"/>`;
+    const a1=-50*Math.PI/180;
+    L.push({ax:X(R*Math.cos(a1)),ay:Y(R*Math.sin(a1)),segs:[circSeg(c,c,(R-S.t/2)*k,0.95)],col:"var(--accent)",t1:(S.type==="pipeO"?"open-end":"closed-end")+" pipe",t2:"⌀"+fr(S.OD)+"″ × "+fr(S.t)+"″ · Fy "+f(S.Fy,0)});
+    if(S.fill) L.push({ax:X(r*0.5),ay:Y(r*0.4),segs:[circSeg(c,c,r*0.55*k,0.8)],col:"var(--ink)",t1:"concrete fill",t2:"f′c "+f(S.fc,1)+" ksi"});
+    if(S.nR>0){const rb=Math.max(0.3,r-2.5),db=Math.sqrt(4*S.Ar/S.nR/Math.PI),sg=[];
+      for(let i=0;i<S.nR;i++){const t=2*Math.PI*i/S.nR-Math.PI/2,x=S.nR===1?0:rb*Math.cos(t),y=S.nR===1?0:rb*Math.sin(t);g+=`<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(1.6,db/2*k)}" fill="var(--bad)"/>`;if(x>=-1e-6)sg.push(circSeg(X(x),Y(y),Math.max(1.6,db/2*k),0.85));}
+      L.push({ax:sg[0].x(sg[0].y0),ay:(sg[0].y0+sg[0].y1)/2,segs:sg,col:"var(--bad)",t1:S.nR+" × "+$("rBar").options[$("rBar").selectedIndex].text.split(" · ")[0]+" bars",t2:"fy "+f(S.fyR,0)+" ksi"});}
+    if(S.c>0) L.push({ax:X((R-S.c)*Math.cos(0.6)),ay:Y((R-S.c)*Math.sin(0.6)),segs:[circSeg(c,c,(R-S.c)*k,0.95)],col:"var(--warn)",t1:"corrosion loss",t2:fr(S.c)+"″ outside → "+f(S.An,1)+" in² net"});
+  }
+  g+=calloutSvg(spreadLabels(L,14,Sz-18,28),Sz+10,Sz+14);
+  $("plan").innerHTML=`<figure class="xs"><svg viewBox="0 0 ${W} ${Sz}" width="${W}" height="${Sz}" role="img" aria-label="Pile cross section">${g}</svg><figcaption><b>Pile cross section</b><span>${TXs(S.name)} · to scale</span></figcaption></figure>`;
+}
+
+function sketch(){
+  const K=window.SK; if(!K) return; const S=K.S;
+  const Egs=v("Egs"), Ecut=v("Ecut"), tor=v("Etor"), GWT=v("GWT"), Etip=K.Etip;
+  const zTop=Math.max(Egs,Ecut)+1.5, zBot=Math.min(Etip,tor)-4;
+  const H=480, y0=50, cx=190, sc=(H-y0-24)/Math.max(1,zTop-zBot), zY=z=>y0+(zTop-z)*sc;
+  const wS=Math.min(44,Math.max(16,S.wid*2)), xL=cx-wS/2, xR=cx+wS/2, xTxt=xR+60, W=Math.round(xTxt+205);
+  const yG=zY(Egs), yR=zY(tor), yTip=zY(Etip), yCut=zY(Ecut);
+  let g=`<rect x="0" y="${yR}" width="${W}" height="${H-yR}" fill="var(--rock)"/>`;
+  // layers
+  K.L.forEach(l=>{const a=zY(l.top),b=zY(l.bot);g+=`<rect x="0" y="${a}" width="${W}" height="${Math.max(0,b-a)}" fill="${LCOL[l.t]}"/>`+(l.t==="org"?`<rect x="0" y="${a}" width="${W}" height="${Math.max(0,b-a)}" fill="url(#hatchO)"/>`:"");
+    if(l.i>1) g+=`<line x1="0" y1="${a}" x2="${W}" y2="${a}" stroke="var(--muted)" stroke-width="0.6" stroke-dasharray="1 3"/>`;});
+  if(zTop>Egs) g+=`<rect x="0" y="0" width="${W}" height="${yG}" fill="var(--sheet)" fill-opacity="0.0"/>`;
+  // pile
+  if(S.type==="hp"){const fw=Math.max(2,S.tf/S.wid*wS*2.2);
+    g+=`<rect x="${xL}" y="${yCut}" width="${wS}" height="${yTip-yCut}" fill="var(--accent)" fill-opacity="0.25"/><rect x="${xL}" y="${yCut}" width="${fw}" height="${yTip-yCut}" fill="var(--accent)"/><rect x="${xR-fw}" y="${yCut}" width="${fw}" height="${yTip-yCut}" fill="var(--accent)"/>`;}
+  else{const ww=Math.max(2,S.t/S.wid*wS*3);
+    g+=`<rect x="${xL}" y="${yCut}" width="${wS}" height="${yTip-yCut}" fill="${S.fill?"var(--conc)":"var(--sheet)"}"/><rect x="${xL}" y="${yCut}" width="${ww}" height="${yTip-yCut}" fill="var(--accent)"/><rect x="${xR-ww}" y="${yCut}" width="${ww}" height="${yTip-yCut}" fill="var(--accent)"/>`+
+      (S.type==="pipeC"?`<rect x="${xL-2}" y="${yTip-3}" width="${wS+4}" height="3" fill="var(--ink)"/>`:"");}
+  g+=`<line x1="0" y1="${yG}" x2="${W}" y2="${yG}" stroke="var(--ink)"/><line x1="0" y1="${yR}" x2="${W}" y2="${yR}" stroke="var(--ink)" stroke-dasharray="4 3"/>`;
+  const gwIn=GWT<=Egs&&GWT>=zBot;
+  if(gwIn) g+=`<line x1="0" y1="${zY(GWT)}" x2="${xL}" y2="${zY(GWT)}" stroke="var(--g-water)" stroke-dasharray="2 4"/><line x1="${xR}" y1="${zY(GWT)}" x2="${W}" y2="${zY(GWT)}" stroke="var(--g-water)" stroke-dasharray="2 4"/><path d="M${W-22} ${zY(GWT)-9}h12l-6 8z" fill="none" stroke="var(--g-water)" stroke-width="1.3"/>`;
+  // callouts right
+  const items=[];
+  items.push({ax:xR,ay:yCut+(yTip-yCut)*0.2,segs:[seg(Math.max(yCut,yG)+4,yTip-4,xR)],col:"var(--accent)",t1:S.name,t2:(S.type==="hp"?"H-pile":S.type==="pipeO"?"open-end":"closed-end")+(S.type!=="hp"&&S.fill?", concrete filled":"")});
+  items.push({ax:xR,ay:yCut,segs:[seg(yCut-1,yCut+1,xR)],col:"var(--ink)",t1:"top of pile",t2:"cutoff El. "+f(Ecut,1)+"′"});
+  items.push({ax:xR,ay:yTip,segs:[seg(yTip-1,yTip+1,xR)],col:"var(--ink)",t1:"tip El. "+f(Etip,1)+"′",t2:K.bear==="soil"?"in "+LNAME[K.st.tipL.t].toLowerCase()+" soil":"on "+K.cls+" rock"});
+  if(v("PDD")>0){const org=K.L.filter(l=>l.t==="org"||l.t==="fill");if(org.length){const a=zY(org[0].top),b=zY(org[org.length-1].bot);items.push({ax:xR,ay:(a+b)/2,segs:[seg(Math.max(a,yCut)+2,b-2,xR)],col:"var(--warn)",t1:"downdrag "+f(v("PDD"),0)+" kip",t2:"fill and soft layers"});}}
+  // left: elevations and layer names, spread so they never overlap
+  const left=[{y:yG-4,t:"GS "+f(Egs,1)+"′",col:"var(--ink)"},{y:yR-4,t:"TOR "+f(tor,1)+"′",col:"var(--ink)"}];
+  if(gwIn) left.push({y:zY(GWT)-4,t:"GWT "+f(GWT,1)+"′",col:"var(--g-water)"});
+  K.L.forEach(l=>{const a=zY(l.top),b=zY(l.bot);if(b-a>8) left.push({y:(a+b)/2+4,t:LNAME[l.t].split(" /")[0]+(l.t==="sand"?" φ"+f(l.phi,0)+"°":l.t==="clay"?" Su "+f(l.Su/1000,1)+" ksf":""),col:"var(--muted)",it:true});});
+  left.sort((a,b)=>a.y-b.y); left.forEach((e,i)=>{e.ty=Math.max(e.y,i?left[i-1].ty+13:12);});
+  const dx=xL-14, dim=`<line x1="${dx}" y1="${yCut}" x2="${dx}" y2="${yTip}" stroke="var(--muted)"/><line x1="${dx-4}" y1="${yCut}" x2="${dx+4}" y2="${yCut}" stroke="var(--muted)"/><line x1="${dx-4}" y1="${yTip}" x2="${dx+4}" y2="${yTip}" stroke="var(--muted)"/><text transform="rotate(-90 ${dx-6} ${(yCut+yTip)/2})" x="${dx-6}" y="${(yCut+yTip)/2}" text-anchor="middle">${f(Ecut-Etip,1)}′ pile</text>`;
+  const yA=yCut;
+  $("sketch").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Pile profile"><defs><pattern id="hatchO" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 8L8 0" stroke="#a89d7e" stroke-width="0.6"/></pattern></defs>${g}
+  ${left.map(e=>`<text x="4" y="${e.ty}" style="fill:${e.col}${e.it?";font-style:italic":""}">${e.t}</text>`).join("")}${dim}
+  <line x1="${cx}" y1="${yA-38}" x2="${cx}" y2="${yA-12}" stroke="var(--bad)" stroke-width="2.5"/><path d="M${cx-6} ${yA-16}L${cx} ${yA-7}L${cx+6} ${yA-16}Z" fill="var(--bad)"/>
+  <text x="${cx+10}" y="${yA-30}" style="fill:var(--ink);font-weight:600">${TXs($("mark").value)}</text><text x="${cx+10}" y="${yA-18}">P = ${f(K.P,0)} kip</text>
+  ${calloutSvg(spreadLabels(items,y0,H-18,29),xTxt-4,xTxt)}</svg>`;
+}
+
+const tabs=[...document.querySelectorAll("nav button")];
+function show(name){
+  if(!["inputs","geotech","structural","driving"].includes(name)) name="inputs";
+  tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===name));
+  ["inputs","geotech","structural","driving"].forEach(n=>$("tab-"+n).hidden=n!==name);
+}
+tabs.forEach(b=>b.addEventListener("click",()=>{location.hash=b.dataset.tab;show(b.dataset.tab)}));
+window.addEventListener("hashchange",()=>show(location.hash.slice(1)));
+fields.forEach(e=>e.addEventListener("input",calc));
+// Number pad keyboard for every numeric input; elevations get a sign toggle since number pads have no minus key
+const SIGNED=["Egs","Ecut","Etor","GWT","EtipS","lBot1","lBot2","lBot3","lBot4","lBot5","lBot6"];
+fields.filter(e=>e.tagName==="INPUT"&&e.type==="number").forEach(e=>{
+  e.setAttribute("inputmode",SIGNED.includes(e.id)?"decimal":(e.step&&e.step!=="1"||["rN","nArea"].indexOf(e.id)<0?"decimal":"numeric"));
+  if(SIGNED.includes(e.id)){const b=document.createElement("button");b.type="button";b.className="sign";b.textContent="±";b.setAttribute("aria-label","Flip sign");
+    b.addEventListener("mousedown",ev=>ev.preventDefault());
+    b.addEventListener("click",()=>{const cur=e.value!==""?e.value:(e.dataset.prev||"0");e.value=String(-parseFloat(cur)||0);delete e.dataset.prev;e.placeholder="";calc();});
+    e.closest(".row").querySelector("label").appendChild(b);}
+});
+// Clear on focus so a new value can be typed directly; restore the old value if left blank
+fields.filter(e=>e.tagName==="INPUT"&&(e.type==="number"||e.type==="text")).forEach(e=>{
+  e.addEventListener("focus",()=>{if(e.disabled)return;e.dataset.prev=e.value;e.dataset.ph=e.placeholder;e.placeholder=e.value;e.value="";});
+  e.addEventListener("blur",()=>{if(!("prev" in e.dataset))return;const changed=e.value!=="";if(!changed)e.value=e.dataset.prev;e.placeholder=e.dataset.ph||"";delete e.dataset.prev;if(!changed)calc();});
+  e.addEventListener("keydown",ev=>{if(ev.key==="Enter")e.blur();if(ev.key==="Escape"){e.value="";e.blur();}});
+});
+$("reset").addEventListener("click",()=>{fields.forEach(e=>e.type==="checkbox"?e.checked=defaults[e.id]:e.value=defaults[e.id]);calc()});
+show(location.hash.slice(1)); calc();
+// Background: soil over rock with an irregular top of rock and a water table
+function ground(){const W=innerWidth,H=innerHeight,base=H*0.46;let d=`M0 0H${W}V${base}`,pts=[];
+  for(let x=W;x>=0;x-=W/12){const y=base+Math.sin(x/90)*10+Math.sin(x/37)*5;pts.push([x,y]);}
+  pts.forEach(([x,y])=>d+=`L${x.toFixed(1)} ${y.toFixed(1)}`);d+="Z";
+  document.getElementById("gSoil").setAttribute("d",d);
+  document.getElementById("gTor").setAttribute("d","M"+pts.map(([x,y])=>x.toFixed(1)+" "+y.toFixed(1)).join("L"));
+  const yw=H*0.2,xw=Math.min(W-40,W*0.82);
+  document.getElementById("gWater").innerHTML=`<line x1="0" y1="${yw}" x2="${W}" y2="${yw}" stroke="var(--g-water)" stroke-width="1" stroke-dasharray="2 5" opacity="0.6"/><path d="M${xw-8} ${yw-12}h16l-8 11z" fill="none" stroke="var(--g-water)" stroke-width="1.5"/><line x1="${xw-6}" y1="${yw+4}" x2="${xw+6}" y2="${yw+4}" stroke="var(--g-water)" stroke-width="1.2"/><line x1="${xw-3}" y1="${yw+8}" x2="${xw+3}" y2="${yw+8}" stroke="var(--g-water)" stroke-width="1.2"/>`;}
+ground(); addEventListener("resize",ground);
+
+// ---------- Saved designs and templates ----------
+// Stored in the viewer's private db subtree (data/users/<id>/designs), so they follow the account across devices.
+// Falls back to this browser's storage when the account store isn't available (signed out or outside viewer).
+const PROJ_FIELDS=["proj","mark","jobNo","prepBy","chkBy"], LOCAL_DS="pile-designs-v1", CUR_KEY="pile-current-design";
+let dsStore=null, dsItems=[], dsCur=null, dsSaved="", dsConfirm=null;
+const snapVals=()=>{const o={};fields.forEach(e=>o[e.id]=e.type==="checkbox"?e.checked:e.value);return o;};
+const sameVals=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function applyVals(vals,keepProject){vals=migrate(vals);fields.forEach(e=>{if(!(e.id in vals))return;if(keepProject&&PROJ_FIELDS.includes(e.id))return;if(e.type==="checkbox")e.checked=!!vals[e.id];else e.value=vals[e.id];});
+  // dependent dropdowns may need a second pass after the first recalculation
+  calc();fields.forEach(e=>{if(e.id in vals&&!(keepProject&&PROJ_FIELDS.includes(e.id))&&e.tagName==="SELECT")e.value=vals[e.id];});calc();}
+function dsStatus(){const cur=dsItems.find(d=>d.id===dsCur);$("dsName").textContent=cur?cur.name:"Unsaved design";
+  $("dsDirty").hidden=!cur||sameVals(JSON.parse(dsSaved||"{}"),snapVals());$("dsSave").disabled=!cur||cur.kind!=="design";
+  $("dsOpen").textContent=cur?"Saved designs · "+cur.name:"Saved designs";}
+function fmtDate(t){try{return new Date(t).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});}catch(_){return"";}}
+function dsRender(){
+  const list=(kind,el)=>{const items=dsItems.filter(d=>d.kind===kind).sort((a,b)=>String(b.updated).localeCompare(String(a.updated)));
+    el.innerHTML=items.length?"":`<div class="ds-empty">${kind==="design"?"No saved designs yet. Name the current design above and save it.":"No templates yet. Set up a typical pile and save it as a template."}</div>`;
+    items.forEach(d=>{const row=document.createElement("div");row.className="ds-item"+(d.id===dsCur?" cur":"");
+      const meta=document.createElement("div");meta.className="meta";const b=document.createElement("b");b.textContent=d.name;const sp=document.createElement("span");
+      const v=d.values||{};sp.textContent=[v.mark,v.proj&&kind==="design"?v.proj:"",fmtDate(d.updated)].filter(Boolean).join(" · ");meta.append(b,sp);
+      const act=document.createElement("div");act.className="actions";
+      const open=document.createElement("button");open.type="button";open.className="btn sm primary";open.textContent=kind==="design"?"Open":"Use template";
+      open.onclick=()=>{if(kind==="design"){applyVals(v,false);dsCur=d.id;dsSaved=JSON.stringify(snapVals());try{localStorage.setItem(CUR_KEY,d.id);}catch(_){} $("dsMsg").textContent="Opened "+d.name+".";}
+        else{applyVals(v,true);PROJ_FIELDS.filter(id=>id!=="proj"&&id!=="mark").forEach(id=>$(id).value="");$("proj").value="";$("mark").value="";calc();dsCur=null;dsSaved="";try{localStorage.removeItem(CUR_KEY);}catch(_){} $("dsMsg").textContent="Started a new design from "+d.name+". Save it as a new design when ready.";}
+        dsConfirm=null;dsRender();};
+      const del=document.createElement("button");del.type="button";del.className="btn sm"+(dsConfirm===d.id?" danger":"");del.textContent=dsConfirm===d.id?"Confirm delete":"Delete";
+      del.onclick=async()=>{if(dsConfirm!==d.id){dsConfirm=d.id;dsRender();return;}dsConfirm=null;try{await dsStore.remove(d.id);if(dsCur===d.id){dsCur=null;dsSaved="";}$("dsMsg").textContent="Deleted "+d.name+".";}catch(e){$("dsMsg").textContent="Couldn't delete: "+(e&&e.code||e);}dsRender();};
+      act.append(open,del);row.append(meta,act);el.appendChild(row);});};
+  list("design",$("dsListD"));list("template",$("dsListT"));dsStatus();}
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+async function dsWrite(id,rec){await dsStore.put(id,rec);const i=dsItems.findIndex(d=>d.id===id);if(i>=0)dsItems[i]=Object.assign({id},rec);else dsItems.push(Object.assign({id},rec));}
+async function dsSaveAs(kind){const name=$("dsNewName").value.trim()||(kind==="design"?([$("mark").value,$("proj").value].filter(Boolean).join(" · ")||"Untitled design"):"Untitled template");
+  const vals=snapVals();if(kind==="template")PROJ_FIELDS.forEach(k=>delete vals[k]);
+  const id=newId();try{await dsWrite(id,{name,kind,values:vals,updated:new Date().toISOString()});
+    if(kind==="design"){dsCur=id;dsSaved=JSON.stringify(snapVals());try{localStorage.setItem(CUR_KEY,id);}catch(_){}}
+    $("dsNewName").value="";$("dsMsg").textContent=(kind==="design"?"Saved design ":"Saved template ")+name+".";}
+  catch(e){$("dsMsg").textContent="Couldn't save: "+(e&&e.code||e);}dsRender();}
+$("dsSaveNew").onclick=()=>dsSaveAs("design");
+$("dsSaveTpl").onclick=()=>dsSaveAs("template");
+$("dsSave").onclick=async()=>{const cur=dsItems.find(d=>d.id===dsCur);if(!cur)return;try{await dsWrite(cur.id,{name:cur.name,kind:"design",values:snapVals(),updated:new Date().toISOString()});dsSaved=JSON.stringify(snapVals());$("dsMsg").textContent="Saved "+cur.name+".";}catch(e){$("dsMsg").textContent="Couldn't save: "+(e&&e.code||e);}dsRender();};
+$("dsNew").onclick=()=>{$("reset").click();dsCur=null;dsSaved="";try{localStorage.removeItem(CUR_KEY);}catch(_){} $("dsMsg").textContent="Started a new design from the example values.";dsRender();};
+$("dsOpen").addEventListener("click",()=>{const p=$("dsPanel");p.hidden=!p.hidden;$("dsOpen").setAttribute("aria-expanded",String(!p.hidden));});
+fields.forEach(e=>e.addEventListener("input",()=>{if(dsCur)dsStatus();}));
+// Browser-only store (fallback)
+const localStore={kind:"local",
+  load(){try{return JSON.parse(localStorage.getItem(LOCAL_DS)||"[]");}catch(_){return[];}},
+  async put(id,rec){const all=this.load().filter(d=>d.id!==id);all.push(Object.assign({id},rec));try{localStorage.setItem(LOCAL_DS,JSON.stringify(all));}catch(e){throw {code:"storage_full"};}},
+  async remove(id){const all=this.load().filter(d=>d.id!==id);dsItems=dsItems.filter(d=>d.id!==id);try{localStorage.setItem(LOCAL_DS,JSON.stringify(all));}catch(_){}}};
+function dsBoot(store){dsStore=store;
+  try{dsCur=localStorage.getItem(CUR_KEY);}catch(_){}
+  $("dsWhere").textContent=store.kind==="account"?"Saved to your account · available on any device":"Saved in this browser only";}
+dsBoot(localStore);dsItems=localStore.load();
+{const c=dsItems.find(d=>d.id===dsCur);if(c)dsSaved=JSON.stringify(c.values);else dsCur=null;}
+dsRender();
+(async()=>{try{const db=await window.claude?.use?.("db"),user=await window.claude?.use?.("user");if(!db||!user)return;
+  const uid=await user.id();if(!uid)return;
+  const col=db.collection("data/users/"+uid+"/designs");
+  const acct={kind:"account",async put(id,rec){await col.doc(id).set(rec);},async remove(id){await col.doc(id).delete();dsItems=dsItems.filter(d=>d.id!==id);}};
+  dsBoot(acct);
+  // carry over anything saved in this browser before the account store was available
+  const pending=localStore.load();
+  col.onSnapshot(snap=>{dsItems=snap.docs.filter(d=>d.exists).map(d=>Object.assign({id:d.id},d.data()));
+      if(dsCur&&!dsSaved){const c=dsItems.find(d=>d.id===dsCur);if(c)dsSaved=JSON.stringify(c.values);}
+      dsRender();},
+    e=>{$("dsMsg").textContent="Couldn't reach saved designs ("+(e&&e.code||"error")+").";});
+  for(const d of pending){try{const {id,...rec}=d;await col.doc(id).set(rec);}catch(_){} }
+  if(pending.length){try{localStorage.removeItem(LOCAL_DS);}catch(_){} }
+ }catch(_){}})();
+// Back up and restore saved designs as a JSON file
+$("dsExport").onclick=async()=>{if(!dsItems.length){$("dsMsg").textContent="Nothing saved yet.";return;}
+  const blob=new Blob([JSON.stringify({app:"nyc-pile-calc",version:2,designs:dsItems},null,1)],{type:"application/json"});
+  try{$("dsMsg").textContent=await saveFile("NYC Pile Calc designs "+new Date().toISOString().slice(0,10)+".json",blob);}catch(e){$("dsMsg").textContent="Backup didn't go through ("+(e&&e.code||"error")+").";}};
+$("dsImport").addEventListener("change",async e=>{const fl=e.target.files&&e.target.files[0];e.target.value="";if(!fl)return;
+  try{const o=JSON.parse(await fl.text()),list=Array.isArray(o)?o:o.designs;if(!Array.isArray(list))throw 0;let n=0;
+    for(const d of list){if(!d||!d.values||!d.name)continue;const id=dsItems.some(x=>x.id===d.id)||!d.id?newId():d.id;
+      await dsWrite(id,{name:d.name,kind:d.kind==="template"?"template":"design",values:migrate(d.values),updated:d.updated||new Date().toISOString()});n++;}
+    $("dsMsg").textContent="Restored "+n+" item"+(n===1?"":"s")+".";dsRender();}
+  catch(_){$("dsMsg").textContent="That file isn't a Pile Calc backup.";}});
+// ---------- Calculation package export (PDF) ----------
+const LOGO_KEY="pile-logo";
+let logoData=null; try{logoData=localStorage.getItem(LOGO_KEY);}catch(_){}
+function showLogo(){const im=$("logoPrev");im.hidden=!logoData;$("logoNone").hidden=!!logoData;$("logoClear").hidden=!logoData;if(logoData)im.src=logoData;}
+showLogo();
+$("expOpen").addEventListener("click",()=>{const p=$("expPanel");p.hidden=!p.hidden;$("expOpen").setAttribute("aria-expanded",String(!p.hidden));});
+$("logoFile").addEventListener("change",e=>{const fl=e.target.files&&e.target.files[0];if(!fl)return;const rd=new FileReader();
+  rd.onload=async()=>{let d=rd.result;if(fl.type==="image/svg+xml"){try{d=(await imgToPng(d,600)).data;}catch(_){$("expMsg").textContent="That SVG could not be read. Try a PNG.";return;}}
+    logoData=d;try{localStorage.setItem(LOGO_KEY,d);}catch(_){} showLogo();};rd.readAsDataURL(fl);});
+$("logoClear").addEventListener("click",()=>{logoData=null;try{localStorage.removeItem(LOGO_KEY);}catch(_){} $("logoFile").value="";showLogo();});
+const loadScript=src=>new Promise((res,rej)=>{if(document.querySelector('script[src="'+src+'"]'))return res();const el=document.createElement("script");el.src=src;el.onload=res;el.onerror=()=>rej(new Error("Could not load "+src));document.head.appendChild(el);});
+// Standard PDF fonts cover Latin-1 only: spell out the symbols they lack
+const TX=s=>String(s).replace(/≥/g,">=").replace(/≤/g,"<=").replace(/−/g,"-").replace(/–/g,"-").replace(/—/g,"-").replace(/π/g,"pi").replace(/φ/g,"phi").replace(/δ/g,"delta").replace(/σ/g,"sigma").replace(/γ/g,"gamma").replace(/α/g,"alpha").replace(/Σ/g,"sum").replace(/Ω/g,"ohm").replace(/κ|Κ/g,"K").replace(/√/g,"sqrt").replace(/ψ/g,"psi").replace(/λ/g,"lambda").replace(/Ω/g,"Omega").replace(/[′’]/g,"'").replace(/[″“”]/g,'"').replace(/⌀/g,"dia. ").replace(/⅜/g,"3/8").replace(/⅝/g,"5/8").replace(/⅞/g,"7/8").replace(/⅛/g,"1/8").replace(/¹⁄₁₆/g,"1/16").replace(/▽/g,"").replace(/[^\x00-\xFF]/g,"").replace(/\s+/g," ").trim();
+const hid=el=>{for(let n=el;n&&n!==document.body;n=n.parentElement){if(n.hidden&&n.getAttribute("role")!=="tabpanel")return true;}return false;};
+function labelText(row){const l=row.querySelector("label");if(!l)return"";let t="";l.childNodes.forEach(n=>{if(n.nodeType===3)t+=n.textContent;});return t.trim();}
+function rowValue(row){const inp=row.querySelector("input:not([type=file]),select,span.code");if(!inp)return"";let v="";
+  if(inp.tagName==="SELECT")v=inp.options[inp.selectedIndex]?inp.options[inp.selectedIndex].text:"";
+  else if(inp.type==="checkbox")v=inp.checked?"Yes":"No";else if(inp.tagName==="INPUT")v=inp.value;else v=inp.textContent;
+  const u=row.querySelector(".unit");return (v+(u&&u.textContent&&inp.type!=="checkbox"?" "+u.textContent:"")).trim();}
+function fieldsetRows(fs){return [...fs.querySelectorAll(".row")].filter(r=>!hid(r)&&r.querySelector("label")).map(r=>[TX(labelText(r)),TX(rowValue(r))]).filter(r=>r[0]&&r[1]&&r[1]!=="—");}
+function tableRows(tb){const rows=[...tb.querySelectorAll("tr")];if(!rows.length)return null;const h=rows[0].querySelector("th")?rows.shift():null;
+  return {head:h?[[...h.children].map(c=>TX(c.textContent))]:null,body:rows.map(tr=>[...tr.children].map(c=>TX(c.textContent))),sum:rows.map(tr=>tr.classList.contains("sum"))};}
+function ckRowsOf(list){return [...list.querySelectorAll(".ck")].map(c=>{const l=TX(c.querySelector(".ck-l").textContent),b=c.querySelector(".ck-v b"),op=c.querySelector(".ck-op"),p=c.querySelector(".pill");return [l,TX(b?b.textContent:""),TX(op?op.textContent:""),TX(p?p.textContent:"")]});}
+function imgToPng(src,maxW){return new Promise((res,rej)=>{const im=new Image();setTimeout(()=>rej(new Error("image timeout")),6000);im.onload=()=>{const sc=Math.min(3,maxW/(im.naturalWidth||maxW));const w=Math.max(1,Math.round((im.naturalWidth||maxW)*sc)),h=Math.max(1,Math.round((im.naturalHeight||maxW)*sc));const cv=document.createElement("canvas");cv.width=w;cv.height=h;const cx=cv.getContext("2d");cx.drawImage(im,0,0,w,h);try{res({data:cv.toDataURL("image/png"),w,h});}catch(e){rej(e);}};im.onerror=()=>rej(new Error("image"));im.src=src;});}
+function svgToPng(svg){const cl=svg.cloneNode(true),cs=getComputedStyle(document.documentElement),col=n=>cs.getPropertyValue("--"+n).trim()||"#888";
+  const fix=v=>v.replace(/var\(--([a-z0-9-]+)\)/g,(m,n)=>col(n));
+  cl.querySelectorAll("*").forEach(el=>{["fill","stroke","style"].forEach(a=>{const v=el.getAttribute(a);if(v&&v.includes("var("))el.setAttribute(a,fix(v));});
+    if(el.tagName.toLowerCase()==="text"){if(!el.getAttribute("fill"))el.setAttribute("fill",col("muted"));el.setAttribute("font-family","Helvetica, Arial, sans-serif");el.setAttribute("font-size","11");}});
+  const vb=(cl.getAttribute("viewBox")||"0 0 300 300").split(/\s+/).map(Number);cl.setAttribute("xmlns","http://www.w3.org/2000/svg");cl.setAttribute("width",vb[2]);cl.setAttribute("height",vb[3]);
+  return imgToPng("data:image/svg+xml;charset=utf-8,"+encodeURIComponent(new XMLSerializer().serializeToString(cl)),vb[2]*3);}
+async function buildPdf(){
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js");
+  const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"pt",format:"letter"});
+  const PW=612,PH=792,M=42,TOP=70,BOT=70, INK=[29,36,51], MUTED=[93,102,118], ACC=[47,75,138], LINE=[207,212,204];
+  const proj=TX($("proj").value), mark=TX($("mark").value), date=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
+  // force the light palette for drawings
+  const root=document.documentElement, prevTheme=root.getAttribute("data-theme"); root.setAttribute("data-theme","light");
+  const imgs={};try{imgs.profile=await svgToPng($("sketch").querySelector("svg"));const xs=$("plan").querySelectorAll("svg");if(xs[0])imgs.upper=await svgToPng(xs[0]);if(xs[1])imgs.sock=await svgToPng(xs[1]);}catch(_){}
+  finally{prevTheme===null?root.removeAttribute("data-theme"):root.setAttribute("data-theme",prevTheme);}
+  let y=TOP;
+  const need=h=>{if(y+h>PH-BOT){doc.addPage();y=TOP;}};
+  const H1=t=>{need(40);doc.setFont("helvetica","bold");doc.setFontSize(14);doc.setTextColor(...INK);doc.text(TX(t),M,y+14);y+=26;};
+  const H2=t=>{need(34);doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(...ACC);doc.text(TX(t).toUpperCase(),M,y+10);y+=16;};
+  const P=(t,sz=9)=>{doc.setFont("helvetica","normal");doc.setFontSize(sz);doc.setTextColor(...MUTED);const ls=doc.splitTextToSize(TX(t),PW-2*M);need(ls.length*sz*1.35+6);doc.text(ls,M,y+sz);y+=ls.length*sz*1.35+8;};
+  const tbl=(head,body,opts={})=>{if(!body||!body.length)return;doc.autoTable(Object.assign({startY:y,head:head||undefined,body,margin:{left:M,right:M,top:TOP,bottom:BOT},theme:"grid",
+      styles:{font:"helvetica",fontSize:8.5,cellPadding:4,textColor:INK,lineColor:LINE,lineWidth:0.5,valign:"top"},
+      headStyles:{fillColor:[238,240,236],textColor:MUTED,fontStyle:"bold",fontSize:7.5},
+      didParseCell:d=>{if(opts.sum&&d.section==="body"&&opts.sum[d.row.index]){d.cell.styles.fontStyle="bold";d.cell.styles.fillColor=[221,228,243];}
+        if(opts.status!=null&&d.section==="body"&&d.column.index===opts.status){const v=String(d.cell.raw);d.cell.styles.fontStyle="bold";d.cell.styles.textColor=/^OK|met/i.test(v)?[45,122,74]:/review|NG|not/i.test(v)?[178,58,43]:INK;}},
+      },opts.extra||{}));y=doc.lastAutoTable.finalY+14;};
+  const kv=rows=>tbl(null,rows,{extra:{columnStyles:{0:{cellWidth:250,textColor:MUTED},1:{fontStyle:"bold"}}}});
+  const calc=id=>{const t=tableRows($(id));if(t&&t.body.length)tbl(t.head,t.body,{sum:t.sum,extra:{columnStyles:{1:{textColor:MUTED,fontSize:7.5},2:{halign:"right",cellWidth:110}}}});};
+  // 1. Cover and summary
+  doc.setFont("helvetica","bold");doc.setFontSize(20);doc.setTextColor(...INK);doc.text("NYC Pile Calc - 2022 Edition",M,y+20);y+=34;
+  doc.setFont("helvetica","normal");doc.setFontSize(11);doc.setTextColor(...MUTED);doc.text("Calculation package · Pile "+mark,M,y+10);y+=28;
+  const LIM="This tool checks the axial capacity of a single driven steel H-pile or pipe pile only. Lateral capacity, bending, buckling, splices and group effects are not checked and must be evaluated separately. The static analysis is an estimate; allowable loads above 40 tons must be confirmed by load tests (NYC BC 1810.3.1).";
+  kv([["Project",proj],["Job number",TX($("jobNo").value)||"-"],["Pile mark",mark],["Prepared by",TX($("prepBy").value)||"-"],["Checked by",TX($("chkBy").value)||"-"],["Date",date],
+      ["Design basis","2022 NYC Building Code Ch. 18 (1810.3, 1810.4, Table 1810.4.1.3, Table 1810.8, 1811.3, 1811.7); API RP 2A static method for soil-bearing piles. Allowable stress design."],
+      ["Limitations",LIM]]);
+  H2("Summary of results");
+  const tiles=sel=>[...document.querySelectorAll(sel+" .tile")].map(t=>[TX(t.querySelector(".k").textContent),TX([...t.childNodes].slice(1).map(n=>n.textContent).join(" "))]);
+  kv([...tiles("#geoTiles"),...tiles("#strTiles"),...tiles("#drvTiles")]);
+  const sum=[...$("capSum").querySelectorAll(".bar-r")].map(r=>[TX(r.querySelector("span").textContent),TX(r.querySelector("b").textContent)+" kip"+(r.querySelector(".gov")?"  (governs)":"")]);
+  if(sum.length){H2("Allowable pile load by criterion");kv(sum);}
+  // 2. Inputs
+  doc.addPage();y=TOP;H1("1. Design inputs");
+  [...$("tab-inputs").querySelectorAll("fieldset")].filter(fs=>!hid(fs)).forEach(fs=>{const lg=fs.querySelector("legend");
+    if(fs.querySelector("#layers")){H2(lg.textContent);
+      const rows=[...document.querySelectorAll(".lyr")].filter(l=>!l.hidden).map((l,i)=>{const n=i+1,t=$("lType"+n).value;return [TX($("lyrH"+n).textContent.replace(/^Layer \d+ · /,"")),TX($("lType"+n).options[$("lType"+n).selectedIndex].text),$("lG"+n).value+" pcf",t==="sand"?"phi "+$("lPhi"+n).value+" deg, N60 "+$("lN"+n).value:t==="clay"?"Su "+$("lSu"+n).value+" psf":"-",(t==="sand"&&$("gMeth").value==="beta")||(t==="clay"&&$("cMeth").value==="beta")?"beta "+$("lB"+n).value+", Nt "+$("lNt"+n).value:"-"];});
+      tbl([["Elevations","Material","Unit weight","Strength","Beta / Nt"]],rows);return;}
+    const rows=fieldsetRows(fs);if(!rows.length)return;H2(lg?lg.textContent:"");kv(rows);
+    fs.querySelectorAll(".cklist").forEach(l=>{if(hid(l))return;const r=ckRowsOf(l);if(r.length)tbl([["Check","Actual","Required","Status"]],r,{status:3});});
+    const nt=fs.querySelector(".cknote");if(nt)P(nt.textContent);});
+  // 3. Drawings
+  doc.addPage();y=TOP;H1("2. Profile and cross section");
+  const put=(im,cap,x,w)=>{if(!im)return 0;const h=w*im.h/im.w;doc.addImage(im.data,"PNG",x,y,w,h);doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...MUTED);doc.text(TX(cap),x,y+h+12);return h+20;};
+  if(imgs.profile){const w=330,h=w*imgs.profile.h/imgs.profile.w;need(h+24);put(imgs.profile,"Profile (vertical scale only)",M,w);y+=h+28;}
+  if(imgs.upper){const w=300,h=w*imgs.upper.h/imgs.upper.w;need(h+24);y+=put(imgs.upper,"Pile cross section, to scale",M,w)+8;}
+  if(!imgs.profile&&!imgs.upper)P("Drawings could not be rendered in this view.");
+  // 4. Geotechnical
+  doc.addPage();y=TOP;H1("3. Geotechnical capacity");
+  [...$("tab-geotech").querySelectorAll("fieldset")].forEach(fs=>{const rows=fieldsetRows(fs);if(rows.length){H2(fs.querySelector("legend").textContent);kv(rows);}});
+  H2("Static analysis by layer");{const t=tableRows($("geoLayers"));if(t&&t.body.length)tbl(t.head,t.body,{sum:t.sum,extra:{columnStyles:{2:{halign:"right"},3:{halign:"right"},4:{halign:"right"},5:{halign:"right"}}}});}
+  if($("geoSrc").value==="static"){H2("Granular methods compared");const t=tableRows($("geoComp"));if(t)tbl(t.head,t.body,{sum:t.sum});}
+  H2("Working");calc("geoCalc");
+  P("NYC BC 1810.3.1: allowable geotechnical capacity uses a factor of safety of at least 2 and is demonstrated by load tests, except driven piles of 40 tons or less. Table 1810.4.1.3 limits may be exceeded only where substantiated by load tests and analysis (1810.4.1.5.1).");
+  // 5. Structural
+  doc.addPage();y=TOP;H1("4. Structural capacity");
+  [...$("tab-structural").querySelectorAll("fieldset")].forEach(fs=>{const rows=fieldsetRows(fs);if(rows.length){H2(fs.querySelector("legend").textContent);kv(rows);}});
+  H2("Compression capacity");calc("strComp");
+  if(!hid($("strTen"))&&$("strTen").textContent.trim()){H2("Tension capacity");calc("strTen");}
+  H2("NYC BC 1811.7 and 1810 pile requirements");calc("strReq");
+  // 6. Driving and testing
+  doc.addPage();y=TOP;H1("5. Driving criteria and load tests");
+  [...$("tab-driving").querySelectorAll("fieldset")].forEach(fs=>{const rows=fieldsetRows(fs);if(rows.length){H2(fs.querySelector("legend").textContent);kv(rows);}});
+  H2("Driving criteria - Table 1811.3(a)");calc("drvCrit");H2("Load tests - Section 1810.4");calc("drvTest");
+  H2("Limitations");P(LIM);
+  // header and footer on every page
+  const n=doc.getNumberOfPages();let lg=null;if(logoData){try{const p=doc.getImageProperties(logoData);lg={w:p.width,h:p.height,fmt:/jpe?g/i.test(p.fileType)?"JPEG":"PNG"};}catch(_){}}
+  for(let i=1;i<=n;i++){doc.setPage(i);
+    doc.setDrawColor(...LINE);doc.setLineWidth(0.6);doc.line(M,46,PW-M,46);doc.line(M,PH-56,PW-M,PH-56);
+    doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.setTextColor(...INK);doc.text("NYC Pile Calc - 2022 Edition  |  "+mark,M,38);
+    doc.setFont("helvetica","normal");doc.setTextColor(...MUTED);doc.text(TX([proj,$("jobNo").value].filter(Boolean).join("  |  ")),PW-M,38,{align:"right"});
+    if(lg){const bh=28,bw=Math.min(130,bh*lg.w/lg.h),hh=bw*lg.h/lg.w;doc.addImage(logoData,lg.fmt,M,PH-48+(bh-hh)/2,bw,hh);}
+    doc.setFontSize(8);doc.text(date,PW/2,PH-30,{align:"center"});doc.text("Page "+i+" of "+n,PW-M,PH-30,{align:"right"});}
+  return doc.output("blob");
+}
+async function saveFile(name,blob){
+  const dl=await window.claude?.use?.("downloads").catch?.(()=>null);
+  if(dl){const r=await dl.save({filename:name,data:blob});return r.status==="saved"?"Saved "+name:"Sent";}
+  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);return "Downloaded "+name;}
+$("expPdf").addEventListener("click",async()=>{const b=$("expPdf"),msg=$("expMsg");b.disabled=true;msg.textContent="Building PDF…";
+  try{const blob=await buildPdf();const name=(TX($("mark").value)||"Pile")+" NYC Pile Calc.pdf";
+    try{msg.textContent=await saveFile(name,blob);}
+    catch(e){msg.textContent=e&&e.code==="declined"?"Download cancelled.":e&&e.code==="rate_limited"?"A download prompt is already open.":"The download didn't go through ("+(e&&e.code||"error")+").";}}
+  catch(e){msg.textContent="Could not build the PDF: "+(e&&e.message||e);}
+  finally{b.disabled=false;}});
+
+
+</script>
+</body></html>
